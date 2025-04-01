@@ -2,7 +2,7 @@ use crate::halavich_utils_helpers::{AMShared, ErrorStackExt};
 use error_stack::{bail, report};
 use google_sheets4::api::{
     BatchGetValuesByDataFilterRequest, BatchGetValuesByDataFilterResponse, DataFilter,
-    MatchedValueRange, ValueRange,
+    ValueRange,
 };
 use google_sheets4::hyper::client::HttpConnector;
 use google_sheets4::hyper::{Body, Response};
