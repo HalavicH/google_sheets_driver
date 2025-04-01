@@ -41,17 +41,14 @@ mod from_a1_cell_id_tests {
 
 impl From<NumCellId> for A1CellId {
     fn from(value: NumCellId) -> Self {
-        Self::from_primitives(
-            &dec_to_string_as_base26(value.col + 1),
-            value.row + 1,
-        )
+        Self::from_primitives(&dec_to_string_as_base26(value.col + 1), value.row + 1)
     }
 }
 
 #[cfg(test)]
 mod from_cell_id_tests {
-    use std::ops::Deref;
     use super::*;
+    use std::ops::Deref;
 
     #[test]
     fn on_cell_id__ok() {
@@ -77,7 +74,6 @@ mod from_cell_id_tests {
         assert_eq!(a1_cell_id.row.get(), 26);
     }
 }
-
 
 /////////////////////////// Conversion functions ///////////////////////////
 

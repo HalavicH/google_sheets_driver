@@ -1,16 +1,15 @@
-use std::num::NonZero;
-use derive_more::Display;
-use thiserror::Error;
 use crate::types::A1CellId;
 use crate::types::cell::a1_cell_id::A1CellIdError;
 use crate::types::letters::Letters;
+use std::num::NonZero;
+use thiserror::Error;
 
 #[derive(Debug, Error, PartialEq)]
 pub enum A1RangeError {
     #[error("Invalid range format: {0}")]
     InvalidRangeFormat(String),
     #[error("Can't parse cell: {0}")]
-    CellParsingError(#[from] A1CellIdError)
+    CellParsingError(#[from] A1CellIdError),
 }
 
 pub type Result<T> = std::result::Result<T, A1RangeError>;
@@ -122,7 +121,10 @@ impl A1Range {
 
 impl A1Range {
     pub fn new(from: A1CellId, to: A1CellId) -> Self {
-        Self { start: from, end: to }
+        Self {
+            start: from,
+            end: to,
+        }
     }
 
     pub fn from_str(from: &str, to: &str) -> Result<Self> {
@@ -170,7 +172,10 @@ mod range_tests {
     #[test]
     fn parse_range__on_invalid_range__err() {
         let range = A1Range::from_str("A1", "C").unwrap_err();
-        assert_eq!(range, A1RangeError::CellParsingError(A1CellIdError::InvalidCellFormat("C".to_string())));
+        assert_eq!(
+            range,
+            A1RangeError::CellParsingError(A1CellIdError::InvalidCellFormat("C".to_string()))
+        );
     }
 
     #[test]

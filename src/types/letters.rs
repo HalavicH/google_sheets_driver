@@ -40,8 +40,8 @@ impl Add<u32> for Letters {
 
 impl PartialOrd for Letters {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let self_number = string_to_dec_as_base26(&self);
-        let other_number = string_to_dec_as_base26(&other);
+        let self_number = string_to_dec_as_base26(self);
+        let other_number = string_to_dec_as_base26(other);
 
         self_number.partial_cmp(&other_number)
     }
@@ -95,8 +95,8 @@ impl Sub<&Letters> for &Letters {
 
 #[cfg(test)]
 mod letters_tests {
-    use std::ops::Deref;
     use super::*;
+    use std::ops::Deref;
 
     #[test]
     fn letters__new__ok() {

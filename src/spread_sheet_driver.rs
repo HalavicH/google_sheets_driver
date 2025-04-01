@@ -1,8 +1,7 @@
 use crate::halavich_utils_helpers::{AMShared, ErrorStackExt};
 use error_stack::{bail, report};
 use google_sheets4::api::{
-    BatchGetValuesByDataFilterRequest, BatchGetValuesByDataFilterResponse, DataFilter,
-    ValueRange,
+    BatchGetValuesByDataFilterRequest, BatchGetValuesByDataFilterResponse, DataFilter, ValueRange,
 };
 use google_sheets4::hyper::client::HttpConnector;
 use google_sheets4::hyper::{Body, Response};
@@ -172,19 +171,30 @@ impl SpreadSheetDriver {
     }
 
     /// Returns row number in spreadsheet by row index of resulting data
-    pub async fn try_get_row_num_by_row_index(data: &MatchedValueRange, row_index: usize) -> SsdResult<u32> {
+    pub async fn try_get_row_num_by_row_index(
+        data: &MatchedValueRange,
+        row_index: usize,
+    ) -> SsdResult<u32> {
         let Some(filters) = data.data_filters.as_ref() else {
-            bail!(SpreadSheetDriverError::InvalidArgument("MatchedValueRange doesn't have data filters".to_string()));
+            bail!(SpreadSheetDriverError::InvalidArgument(
+                "MatchedValueRange doesn't have data filters".to_string()
+            ));
         };
 
         if filters.len() != 1 {
-            bail!(SpreadSheetDriverError::InvalidArgument("MatchedValueRange doesn't have exactly one filter".to_string()));
+            bail!(SpreadSheetDriverError::InvalidArgument(
+                "MatchedValueRange doesn't have exactly one filter".to_string()
+            ));
         };
 
-        let filter = filters.first().expect("Expected to have exactly one filter");
+        let filter = filters
+            .first()
+            .expect("Expected to have exactly one filter");
 
         let Some(range) = filter.a1_range.as_ref() else {
-            bail!(SpreadSheetDriverError::InvalidArgument("Data filter doesn't have A1 range".to_string()));
+            bail!(SpreadSheetDriverError::InvalidArgument(
+                "Data filter doesn't have A1 range".to_string()
+            ));
         };
 
         todo!("Parse range into parts and calculate row index");

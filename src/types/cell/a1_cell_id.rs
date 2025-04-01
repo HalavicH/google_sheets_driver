@@ -1,24 +1,22 @@
-use crate::types::cell::num_cell_id::NumCellId;
 use crate::types::cell::conversions::string_to_dec_as_base26;
+use crate::types::cell::num_cell_id::NumCellId;
 use crate::types::letters::Letters;
-use error_stack::IntoReportCompat;
 use std::cmp::Ordering;
 use std::num::{NonZero, NonZeroU32};
-use std::ops::{Add, Deref, Sub};
-
+use std::ops::{Add, Deref};
 
 pub type Result<T> = error_stack::Result<T, A1CellIdError>;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct SheetA1CellId {
     pub sheet_name: String,
-    pub cell: A1CellId
+    pub cell: A1CellId,
 }
 
 #[derive(Debug, Clone, thiserror::Error, PartialEq)]
 pub enum A1CellIdError {
     #[error("Invalid cell format: {0}")]
-    InvalidCellFormat(String)
+    InvalidCellFormat(String),
 }
 
 /// Defines a cell id in A1 notation.

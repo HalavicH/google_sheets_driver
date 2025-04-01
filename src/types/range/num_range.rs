@@ -1,4 +1,3 @@
-
 /// Re-exporting conversion functions
 use crate::types::NumCellId;
 
@@ -14,8 +13,14 @@ pub struct NumRange {
 
 impl NumRange {
     pub fn new(start: NumCellId, end: NumCellId) -> Self {
-        assert!(start.col <= end.col, "Start column must be less or equal to end column");
-        assert!(start.row <= end.row, "Start row must be less or equal to end row");
+        assert!(
+            start.col <= end.col,
+            "Start column must be less or equal to end column"
+        );
+        assert!(
+            start.row <= end.row,
+            "Start row must be less or equal to end row"
+        );
         Self { start, end }
     }
 }

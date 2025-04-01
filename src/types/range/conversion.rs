@@ -19,8 +19,8 @@ impl From<A1Range> for NumRange {
 
 #[cfg(test)]
 mod range_tests {
-    use crate::types::NumCellId;
     use super::*;
+    use crate::types::NumCellId;
 
     #[test]
     fn from_range__on_valid_range__ok() {

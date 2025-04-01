@@ -1,4 +1,3 @@
-
 /// Defines a cell id as 0-indexed 2D coordinates
 #[derive(Debug, PartialEq, Clone, Copy, Eq)]
 pub struct NumCellId {
