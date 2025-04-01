@@ -4,7 +4,7 @@ use crate::types::letters::Letters;
 use error_stack::IntoReportCompat;
 use std::cmp::Ordering;
 use std::num::{NonZero, NonZeroU32};
-use std::ops::{Add, Sub};
+use std::ops::{Add, Deref, Sub};
 
 
 pub type Result<T> = error_stack::Result<T, A1CellIdError>;
@@ -15,7 +15,7 @@ pub struct SheetA1CellId {
     pub cell: A1CellId
 }
 
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error, PartialEq)]
 pub enum A1CellIdError {
     #[error("Invalid cell format: {0}")]
     InvalidCellFormat(String)
@@ -35,8 +35,10 @@ impl Add for A1CellId {
         /// Add two cell ids together
         /// Example: A1 + B2 = C3
         /// Example: A1 + A1 = A2
-        let number = self.row.get() + other.row.get() - 1;
-        let letter = self.col + string_to_dec_as_base26(&other.col.value) - 1;
+        let number = self.row.get() + other.row.get();
+        let other_col_as_num = string_to_dec_as_base26(&other.col);
+        let letter = self.col + other_col_as_num;
+
         A1CellId::new(
             letter,
             NonZero::new(number).expect("Expected a non-zero cell row number"),
@@ -56,7 +58,7 @@ impl A1CellId {
     /// Example: A1 -> 1
     /// Example: B1 -> 2
     pub(crate) fn column(&self) -> NonZeroU32 {
-        NonZero::new(string_to_dec_as_base26(&self.col.value))
+        NonZero::new(string_to_dec_as_base26(&self.col))
             .expect("Expected a non-zero cell column number")
     }
 }
@@ -78,13 +80,13 @@ impl A1CellId {
     /// Convert the cell id to a 1-indexed row and column indices
     pub fn as_indices(&self) -> NumCellId {
         NumCellId {
-            col: string_to_dec_as_base26(&self.col.value),
+            col: string_to_dec_as_base26(&self.col),
             row: self.row.get(),
         }
     }
 
     pub fn to_string(&self) -> String {
-        format!("{}{}", self.col.value, self.row)
+        format!("{}{}", self.col.deref(), self.row)
     }
 
     pub(crate) fn delta(&self, columns: i32, rows: i32) -> A1CellId {
@@ -182,7 +184,7 @@ mod a1_cell_id_tests {
         #[test]
         fn cell_id__new__ok() {
             let cell_id = A1CellId::from_primitives("A", 1);
-            assert_eq!(cell_id.col.value, "A");
+            assert_eq!(cell_id.col.deref(), "A");
             assert_eq!(cell_id.row.get(), 1);
         }
 
@@ -208,7 +210,7 @@ mod a1_cell_id_tests {
         fn cell_id__cell_at__ok() {
             let cell_id = A1CellId::from_primitives("A", 1);
             let result = cell_id.delta(1, 1);
-            assert_eq!(result.col.value, "B");
+            assert_eq!(result.col.deref(), "B");
             assert_eq!(result.row.get(), 2);
         }
 
@@ -216,7 +218,7 @@ mod a1_cell_id_tests {
         fn cell_id__cell_at__with_overflow__ok() {
             let cell_id = A1CellId::from_primitives("Z", 26);
             let result = cell_id.delta(1, 1);
-            assert_eq!(result.col.value, "AA");
+            assert_eq!(result.col.deref(), "AA");
             assert_eq!(result.row.get(), 27);
         }
     }
@@ -225,12 +227,30 @@ mod a1_cell_id_tests {
         use super::*;
 
         #[test]
-        fn cell_id__add__ok() {
-            let cell_id = A1CellId::from_primitives("A", 1);
-            let other = A1CellId::from_primitives("B", 2);
-            let result = cell_id + other;
-            assert_eq!(result.col.value, "C");
+        fn given_a1_b2__when_add__then_ok_c3() {
+            let a = A1CellId::from_primitives("A", 1);
+            let b = A1CellId::from_primitives("B", 2);
+            let result = a + b;
+            assert_eq!(result.col.deref(), "C");
             assert_eq!(result.row.get(), 3);
+        }
+
+        #[test]
+        fn given_b2_c2__when_add__then_ok_e4() {
+            let a = A1CellId::from_primitives("B", 2);
+            let b = A1CellId::from_primitives("C", 2);
+            let result = a + b;
+            assert_eq!(result.col.deref(), "E");
+            assert_eq!(result.row.get(), 4);
+        }
+
+        #[test]
+        fn given_z26_a1__when_add__then_ok_aa27() {
+            let a = A1CellId::from_primitives("Z", 26);
+            let b = A1CellId::from_primitives("A", 1);
+            let result = a + b;
+            assert_eq!(result.col.deref(), "AA");
+            assert_eq!(result.row.get(), 27);
         }
     }
 

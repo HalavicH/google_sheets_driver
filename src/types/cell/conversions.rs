@@ -4,7 +4,7 @@ use crate::types::{A1CellId, NumCellId};
 impl From<A1CellId> for NumCellId {
     fn from(value: A1CellId) -> Self {
         Self {
-            col: string_to_dec_as_base26(&value.col.value) - 1,
+            col: string_to_dec_as_base26(&value.col) - 1,
             row: value.row.get() - 1,
         }
     }
@@ -50,13 +50,14 @@ impl From<NumCellId> for A1CellId {
 
 #[cfg(test)]
 mod from_cell_id_tests {
+    use std::ops::Deref;
     use super::*;
 
     #[test]
     fn on_cell_id__ok() {
         let cell_id = NumCellId { col: 0, row: 0 };
         let a1_cell_id = A1CellId::from(cell_id);
-        assert_eq!(a1_cell_id.col.value, "A");
+        assert_eq!(a1_cell_id.col.deref(), "A");
         assert_eq!(a1_cell_id.row.get(), 1);
     }
 
@@ -64,7 +65,7 @@ mod from_cell_id_tests {
     fn on_b2_cell_id__ok() {
         let cell_id = NumCellId { col: 1, row: 1 };
         let a1_cell_id = A1CellId::from(cell_id);
-        assert_eq!(a1_cell_id.col.value, "B");
+        assert_eq!(a1_cell_id.col.deref(), "B");
         assert_eq!(a1_cell_id.row.get(), 2);
     }
 
@@ -72,7 +73,7 @@ mod from_cell_id_tests {
     fn on_z26_cell_id__ok() {
         let cell_id = NumCellId { col: 25, row: 25 };
         let a1_cell_id = A1CellId::from(cell_id);
-        assert_eq!(a1_cell_id.col.value, "Z");
+        assert_eq!(a1_cell_id.col.deref(), "Z");
         assert_eq!(a1_cell_id.row.get(), 26);
     }
 }

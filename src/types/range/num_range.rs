@@ -26,8 +26,8 @@ mod range_tests {
 
     #[test]
     fn new__on_valid_range__ok() {
-        let start = NumCellId::new(0, 0);
-        let end = NumCellId::new(1, 1);
+        let start = NumCellId::from_primitives(0, 0);
+        let end = NumCellId::from_primitives(1, 1);
         let range = NumRange::new(start, end);
         assert_eq!(range.start, start);
         assert_eq!(range.end, end);
@@ -36,8 +36,8 @@ mod range_tests {
     #[test]
     #[should_panic(expected = "Start column must be less or equal to end column")]
     fn new__on_invalid_range__panic() {
-        let start = NumCellId::new(1, 0);
-        let end = NumCellId::new(0, 1);
+        let start = NumCellId::from_primitives(1, 0);
+        let end = NumCellId::from_primitives(0, 1);
         NumRange::new(start, end);
     }
 }

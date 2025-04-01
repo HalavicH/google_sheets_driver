@@ -5,7 +5,7 @@ use crate::types::A1CellId;
 use crate::types::cell::a1_cell_id::A1CellIdError;
 use crate::types::letters::Letters;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum A1RangeError {
     #[error("Invalid range format: {0}")]
     InvalidRangeFormat(String),
@@ -170,7 +170,7 @@ mod range_tests {
     #[test]
     fn parse_range__on_invalid_range__err() {
         let range = A1Range::from_str("A1", "C").unwrap_err();
-        assert_eq!(range.to_string(), "Invalid cell format: C");
+        assert_eq!(range, A1RangeError::CellParsingError(A1CellIdError::InvalidCellFormat("C".to_string())));
     }
 
     #[test]
