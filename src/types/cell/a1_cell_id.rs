@@ -1,5 +1,5 @@
-use crate::types::cell_id::cell_id::CellId;
-use crate::types::cell_id::conversions::string_to_dec_as_base26;
+use crate::types::cell::num_cell_id::NumCellId;
+use crate::types::cell::conversions::string_to_dec_as_base26;
 use crate::types::letters::Letters;
 use error_stack::IntoReportCompat;
 use std::cmp::Ordering;
@@ -76,8 +76,8 @@ impl A1CellId {
     }
 
     /// Convert the cell id to a 1-indexed row and column indices
-    pub fn as_indices(&self) -> CellId {
-        CellId {
+    pub fn as_indices(&self) -> NumCellId {
+        NumCellId {
             col: string_to_dec_as_base26(&self.col.value),
             row: self.row.get(),
         }

@@ -1,7 +1,7 @@
-use crate::types::{A1CellId, CellId};
+use crate::types::{A1CellId, NumCellId};
 
 ///////////////////////// CellId <-> A1CellId conversions /////////////////////////
-impl From<A1CellId> for CellId {
+impl From<A1CellId> for NumCellId {
     fn from(value: A1CellId) -> Self {
         Self {
             col: string_to_dec_as_base26(&value.col.value) - 1,
@@ -17,7 +17,7 @@ mod from_a1_cell_id_tests {
     #[test]
     fn on_a1_cell_id__ok() {
         let a1_cell_id = A1CellId::from_primitives("A", 1);
-        let cell_id = CellId::from(a1_cell_id);
+        let cell_id = NumCellId::from(a1_cell_id);
         assert_eq!(cell_id.col, 0);
         assert_eq!(cell_id.row, 0);
     }
@@ -25,7 +25,7 @@ mod from_a1_cell_id_tests {
     #[test]
     fn on_b2_cell_id__ok() {
         let a1_cell_id = A1CellId::from_primitives("B", 2);
-        let cell_id = CellId::from(a1_cell_id);
+        let cell_id = NumCellId::from(a1_cell_id);
         assert_eq!(cell_id.col, 1);
         assert_eq!(cell_id.row, 1);
     }
@@ -33,14 +33,14 @@ mod from_a1_cell_id_tests {
     #[test]
     fn on_z26_cell_id__ok() {
         let a1_cell_id = A1CellId::from_primitives("Z", 26);
-        let cell_id = CellId::from(a1_cell_id);
+        let cell_id = NumCellId::from(a1_cell_id);
         assert_eq!(cell_id.col, 25);
         assert_eq!(cell_id.row, 25);
     }
 }
 
-impl From<CellId> for A1CellId {
-    fn from(value: CellId) -> Self {
+impl From<NumCellId> for A1CellId {
+    fn from(value: NumCellId) -> Self {
         Self::from_primitives(
             &dec_to_string_as_base26(value.col + 1),
             value.row + 1,
@@ -54,7 +54,7 @@ mod from_cell_id_tests {
 
     #[test]
     fn on_cell_id__ok() {
-        let cell_id = CellId { col: 0, row: 0 };
+        let cell_id = NumCellId { col: 0, row: 0 };
         let a1_cell_id = A1CellId::from(cell_id);
         assert_eq!(a1_cell_id.col.value, "A");
         assert_eq!(a1_cell_id.row.get(), 1);
@@ -62,7 +62,7 @@ mod from_cell_id_tests {
 
     #[test]
     fn on_b2_cell_id__ok() {
-        let cell_id = CellId { col: 1, row: 1 };
+        let cell_id = NumCellId { col: 1, row: 1 };
         let a1_cell_id = A1CellId::from(cell_id);
         assert_eq!(a1_cell_id.col.value, "B");
         assert_eq!(a1_cell_id.row.get(), 2);
@@ -70,7 +70,7 @@ mod from_cell_id_tests {
 
     #[test]
     fn on_z26_cell_id__ok() {
-        let cell_id = CellId { col: 25, row: 25 };
+        let cell_id = NumCellId { col: 25, row: 25 };
         let a1_cell_id = A1CellId::from(cell_id);
         assert_eq!(a1_cell_id.col.value, "Z");
         assert_eq!(a1_cell_id.row.get(), 26);

@@ -1,5 +1,5 @@
 use crate::spread_sheet_driver::{SharedSpreadSheetDriver, SpreadSheetDriverError};
-use crate::types::{A1CellId, Entity, EntityEssentials};
+use crate::types::{A1CellId, Entity, EntityEssentials, SheetA1CellId};
 
 #[derive(Debug, thiserror::Error, derive_more::Display)]
 pub enum RepositoryError {
@@ -13,11 +13,11 @@ pub struct Repository {
 }
 
 impl Repository {
-    pub fn find_in_range<E>(&self, start: A1CellId, rows: usize) -> Result<Vec<Entity<E>>> where E: EntityEssentials {
-        // let range = start.
+    pub fn find_in_range<E>(&self, start: SheetA1CellId, rows: usize) -> Result<Vec<Entity<E>>> where E: EntityEssentials {
+        let range =
         // self.driver.lock().await
         //     .read_rows_deserialized()
-        todo!()
+        todo!();
     }
 
     pub fn find_one<E>(&self, position: A1CellId) -> Result<Option<Entity<E>>> where E: EntityEssentials{

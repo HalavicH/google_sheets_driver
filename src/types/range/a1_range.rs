@@ -2,7 +2,7 @@ use std::num::NonZero;
 use derive_more::Display;
 use thiserror::Error;
 use crate::types::A1CellId;
-use crate::types::cell_id::a1_cell_id::A1CellIdError;
+use crate::types::cell::a1_cell_id::A1CellIdError;
 use crate::types::letters::Letters;
 
 #[derive(Debug, Error)]
