@@ -234,20 +234,20 @@ impl SpreadSheetDriver {
             .collect()
     }
 
-    // pub async fn read_rows_deserialized<T>(&self, range_str: &str) -> SsdResult<Vec<T>>
-    // where
-    //     T: TryFromRow,
-    // {
-    //     let range = self.get_range(range_str).await;
-    //     let result: SsdResult<Vec<T>> = range
-    //         .into_vec()
-    //         .into_iter()
-    //         // TODO: use .filter_map(|v| v.....
-    //         .map(|row| T::try_from_row(row))
-    //         // .flatten()
-    //         .collect();
-    //     result
-    // }
+    pub async fn read_rows_deserialized<T>(&self, range_str: &str) -> SsdResult<Vec<T>>
+    where
+        T: TryFromRow,
+    {
+        let range = self.get_range(range_str).await;
+        let result: SsdResult<Vec<T>> = range
+            .into_vec()
+            .into_iter()
+            // TODO: use .filter_map(|v| v.....
+            .map(|row| T::try_from_row(row))
+            // .flatten()
+            .collect();
+        result
+    }
 }
 
 pub async fn get_data_as_rows(

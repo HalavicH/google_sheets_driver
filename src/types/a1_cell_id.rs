@@ -274,7 +274,7 @@ mod a1_cell_id_tests {
 /////////////////////////// Letters in A1 notation ///////////////////////////
 
 /// Encapsulates the letters of the alphabet to use it for the cell id
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub struct Letters {
     pub value: String,
 }
