@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 use std::ops::Deref;
-use crate::types::a1_cell_id::A1CellId;
+use crate::types::A1CellId;
 
 /// Position aware object which knows its position on the spreadsheet
 pub struct Entity<E> where E: EntityEssentials {

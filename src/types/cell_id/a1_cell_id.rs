@@ -2,8 +2,8 @@ use std::cmp::Ordering;
 use std::num::{NonZero, NonZeroU32};
 use std::ops::{Add, Sub};
 use error_stack::{bail, IntoReportCompat, Report};
-use crate::types::cell_id::CellId;
-use crate::types::conversions::{dec_to_string_as_base26, string_to_dec_as_base26};
+use crate::types::cell_id::cell_id::CellId;
+use crate::types::cell_id::conversions::{dec_to_string_as_base26, string_to_dec_as_base26};
 
 pub type Result<T> = error_stack::Result<T, A1CellIdError>;
 

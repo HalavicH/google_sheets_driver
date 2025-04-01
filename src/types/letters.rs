@@ -2,7 +2,7 @@
 ////////////////////////// Letters in A1 notation ///////////////////////////
 
 use std::ops::Add;
-use crate::types::conversions::{dec_to_string_as_base26, string_to_dec_as_base26};
+use crate::types::cell_id::conversions::{dec_to_string_as_base26, string_to_dec_as_base26};
 
 /// Encapsulates the letters of the alphabet to use it for the cell id
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]

@@ -1,5 +1,4 @@
-use crate::types::a1_cell_id::A1CellId;
-use crate::types::cell_id::CellId;
+use crate::types::{A1CellId, CellId};
 
 ///////////////////////// CellId <-> A1CellId conversions /////////////////////////
 impl From<A1CellId> for CellId {
