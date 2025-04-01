@@ -1,4 +1,5 @@
 use crate::halavich_utils_helpers::{AMShared, ErrorStackExt};
+use error_stack::{bail, report};
 use google_sheets4::api::{
     BatchGetValuesByDataFilterRequest, BatchGetValuesByDataFilterResponse, DataFilter,
     MatchedValueRange, ValueRange,
@@ -12,7 +13,8 @@ use log::error;
 use serde_json::Value;
 use std::any::type_name;
 use std::fmt::{Debug, Formatter};
-use error_stack::report;
+
+pub use google_sheets4::api::MatchedValueRange;
 
 #[derive(Debug, thiserror::Error)]
 pub enum SpreadSheetDriverError {
@@ -22,6 +24,8 @@ pub enum SpreadSheetDriverError {
     ApiError(String),
     #[error("Parsing error ({0})")]
     ParseError(String),
+    #[error("Invalid argument {0}")]
+    InvalidArgument(String),
 }
 
 pub type SsdResult<T> = error_stack::Result<T, SpreadSheetDriverError>;
@@ -31,7 +35,7 @@ pub type SharedSpreadSheetDriver = AMShared<SpreadSheetDriver>;
 #[derive(Debug)]
 pub struct SpreadSheetDriver {
     document_id: String,
-    sheets_client: SheetsClient,
+    pub sheets_client: SheetsClient,
 }
 
 pub type SheetsClientConnector = Sheets<HttpsConnector<HttpConnector>>;
@@ -167,6 +171,35 @@ impl SpreadSheetDriver {
             .map(|_| ())
     }
 
+    /// Returns row number in spreadsheet by row index of resulting data
+    pub async fn try_get_row_num_by_row_index(data: &MatchedValueRange, row_index: usize) -> SsdResult<u32> {
+        let Some(filters) = data.data_filters.as_ref() else {
+            bail!(SpreadSheetDriverError::InvalidArgument("MatchedValueRange doesn't have data filters".to_string()));
+        };
+
+        if filters.len() != 1 {
+            bail!(SpreadSheetDriverError::InvalidArgument("MatchedValueRange doesn't have exactly one filter".to_string()));
+        };
+
+        let filter = filters.first().expect("Expected to have exactly one filter");
+
+        let Some(range) = filter.a1_range.as_ref() else {
+            bail!(SpreadSheetDriverError::InvalidArgument("Data filter doesn't have A1 range".to_string()));
+        };
+
+        todo!("Parse range into parts and calculate row index");
+        // let maybe_range_start  = range.split(":").collect::<Vec<&str>>()
+        //     .first()
+        // .and_then(|&part| if part.contains("!") {
+        //     part.split("!").collect::<Vec<&str>>().get(1).expect("Expected to have 2 parts after split by '!'")
+        // } else {
+        //     part
+        // }
+        // )
+        // .and_then(|part| parse::<>);
+        Ok(5)
+    }
+
     /// Typed API ///
     pub async fn read_rows_deserialized_ignore_errors<T>(&self, range_str: &str) -> Vec<T>
     where
@@ -174,8 +207,10 @@ impl SpreadSheetDriver {
     {
         let result = self.try_get_range(range_str).await;
         let range = match result {
-            Ok(range) => {range}
-            Err(_) => {return vec![];}
+            Ok(range) => range,
+            Err(_) => {
+                return vec![];
+            }
         };
 
         range
@@ -272,4 +307,3 @@ pub trait TryFromRow {
     where
         Self: Sized;
 }
-

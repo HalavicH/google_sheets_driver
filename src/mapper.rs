@@ -1,9 +1,9 @@
+use crate::spread_sheet_driver::SpreadSheetDriverError;
 use error_stack::{Context, Report, ResultExt};
-use google_sheets4::chrono::{DateTime, FixedOffset};
+use google_sheets4::chrono::{DateTime, Utc};
 use serde_json::Value;
 use std::any::type_name;
 use std::fmt;
-use crate::spread_sheet_driver::SpreadSheetDriverError;
 
 pub type ParseResult<T> = error_stack::Result<T, SpreadSheetDriverError>;
 
@@ -95,9 +95,9 @@ impl<T: TryFromCell> TryFromCell for Option<T> {
     }
 }
 
-impl TryFromCell for DateTime<FixedOffset> {
+impl TryFromCell for DateTime<Utc> {
     fn try_from_cell(cell: &str) -> TryFromCellResult<Self> {
-        DateTime::parse_from_rfc3339(cell)
+        cell.parse::<DateTime<Utc>>()
             .map_err(Report::new)
             .change_context(TryFromCellError)
     }

@@ -33,7 +33,9 @@ pub trait ErrorStackExt {
 impl<E> ErrorStackExt for error_stack::Report<E> {
     fn to_string_no_bt(self) -> String {
         let string = format!("{:?}", self);
-        let split = string.split("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━").collect::<Vec<&str>>();
+        let split = string
+            .split("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            .collect::<Vec<&str>>();
         split.first().unwrap().to_string()
     }
 }
