@@ -168,9 +168,9 @@ impl PositionalParsing for MatchedValueRange {
 #[cfg(test)]
 mod orm_tests {
     use super::*;
-    use crate::mapper;
-    use crate::mapper::ParseOptionalValue;
-    use crate::spread_sheet_driver::{SheetRow, SheetRowSerde};
+
+    use crate::mapper::sheet_row;
+    use crate::mapper::sheet_row::{SheetRow, SheetRowExt, SheetRowSerde};
     use google_sheets4::api::{DataFilter, ValueRange};
     use serde_json::Value;
     use std::fmt::Debug;
@@ -182,16 +182,16 @@ mod orm_tests {
     }
 
     impl SheetRowSerde for User {
-        fn deserialize(row: SheetRow) -> mapper::Result<Self>
+        fn deserialize(row: SheetRow) -> sheet_row::Result<Self>
         where
             Self: Sized,
         {
             Ok(Self {
-                id: row.first().parse_optional_value(&row, "id")?,
-                name: row.get(1).parse_optional_value(&row, "name")?,
+                id: row.parse_cell(0, "id")?,
+                name: row.parse_cell(1, "name")?,
             })
         }
-        fn serialize(self) -> mapper::Result<SheetRow> {
+        fn serialize(self) -> sheet_row::Result<SheetRow> {
             Ok(vec![
                 Value::String(self.name),
                 Value::String(self.id.to_string()),

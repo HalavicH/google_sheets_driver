@@ -13,7 +13,7 @@ use serde_json::Value;
 use std::any::type_name;
 use std::fmt::{Debug, Formatter};
 
-use crate::mapper;
+use crate::mapper::sheet_row::SheetRowSerde;
 pub use google_sheets4::api::MatchedValueRange;
 
 #[derive(Debug, thiserror::Error)]
@@ -310,14 +310,4 @@ impl IntoStrVec for MatchedValueRange {
             .values
             .unwrap_or_default()
     }
-}
-
-pub type SheetRow = Vec<Value>;
-
-pub trait SheetRowSerde {
-    fn deserialize(row: SheetRow) -> mapper::Result<Self>
-    where
-        Self: Sized;
-
-    fn serialize(self) -> mapper::Result<SheetRow>;
 }

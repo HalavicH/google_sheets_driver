@@ -1,11 +1,37 @@
-use derive_more::Deref;
-use derive_more::with_trait::From;
-use error_stack::{Context, Report, ResultExt};
-use google_sheets4::chrono::{DateTime, Utc};
+use crate::mapper::sheet_cell::SheetRawCellSerde;
+use error_stack::{Report, ResultExt};
 use serde_json::Value;
 use std::any::type_name;
-use std::fmt;
 use thiserror::Error;
+
+pub type SheetRow = Vec<Value>;
+
+pub trait SheetRowSerde {
+    fn deserialize(row: SheetRow) -> Result<Self>
+    where
+        Self: Sized;
+
+    fn serialize(self) -> Result<SheetRow>;
+}
+
+pub trait SheetRowExt {
+    /// cell_id - 0-based array index
+    fn parse_cell<T: SheetRawCellSerde + Default>(
+        &self,
+        cell_id: usize,
+        column_name: &'static str,
+    ) -> Result<T>;
+}
+
+impl SheetRowExt for SheetRow {
+    fn parse_cell<T: SheetRawCellSerde + Default>(
+        &self,
+        cell_id: usize,
+        column_name: &'static str,
+    ) -> Result<T> {
+        self.get(cell_id).parse_optional_value(self, column_name)
+    }
+}
 
 pub type Result<T> = error_stack::Result<T, ParseError>;
 #[derive(Debug, Error)]
@@ -30,10 +56,10 @@ pub enum ParseError {
     },
 }
 
-pub trait ParseOptionalValue {
+trait ParseOptionalValue {
     fn parse_optional_value<T>(self, row: &Vec<Value>, field_name: &'static str) -> Result<T>
     where
-        T: CellSerde + Default;
+        T: SheetRawCellSerde + Default;
     // TODO: Make it nicer by bounding receiver (self) to be an Option<Value>
 
     fn try_unwrap_value<'a>(
@@ -49,7 +75,7 @@ pub trait ParseOptionalValue {
 }
 
 impl ParseOptionalValue for Option<&Value> {
-    fn parse_optional_value<T: CellSerde + Default>(
+    fn parse_optional_value<T: SheetRawCellSerde + Default>(
         self,
         row: &Vec<Value>,
         field_name: &'static str,
@@ -69,7 +95,7 @@ impl ParseOptionalValue for Option<&Value> {
                 .ok_or_else(|| ParseError::JsonValueToStringError(v.clone()))?
                 .to_owned();
 
-            CellSerde::deserialize(string.clone().into()).change_context_lazy(|| {
+            SheetRawCellSerde::deserialize(string.clone().into()).change_context_lazy(|| {
                 ParseError::CellDeserializationError {
                     column_name: field_name,
                     type_name,
@@ -77,65 +103,5 @@ impl ParseOptionalValue for Option<&Value> {
                 }
             })
         })
-    }
-}
-
-#[derive(Debug)]
-pub struct TryFromCellError;
-impl Context for TryFromCellError {}
-
-impl fmt::Display for TryFromCellError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not convert cell to type")
-    }
-}
-
-pub type TryFromCellResult<T> = error_stack::Result<T, TryFromCellError>;
-
-#[derive(Debug, Deref, From)]
-pub struct Cell(String);
-
-pub trait CellSerde {
-    fn serialize(&self) -> Cell {
-        todo!()
-    }
-    fn deserialize(cell: Cell) -> TryFromCellResult<Self>
-    where
-        Self: Sized;
-}
-
-impl CellSerde for i32 {
-    fn deserialize(cell: Cell) -> TryFromCellResult<Self> {
-        cell.parse::<i32>()
-            .map_err(Report::new)
-            .change_context(TryFromCellError)
-    }
-}
-
-impl CellSerde for String {
-    fn deserialize(cell: Cell) -> TryFromCellResult<Self> {
-        Ok(cell.to_string())
-    }
-}
-
-impl CellSerde for i64 {
-    fn deserialize(cell: Cell) -> TryFromCellResult<Self> {
-        cell.parse::<i64>()
-            .map_err(Report::new)
-            .change_context(TryFromCellError)
-    }
-}
-
-impl<T: CellSerde> CellSerde for Option<T> {
-    fn deserialize(cell: Cell) -> TryFromCellResult<Self> {
-        Ok(T::deserialize(cell).ok())
-    }
-}
-
-impl CellSerde for DateTime<Utc> {
-    fn deserialize(cell: Cell) -> TryFromCellResult<Self> {
-        cell.parse::<DateTime<Utc>>()
-            .map_err(Report::new)
-            .change_context(TryFromCellError)
     }
 }
