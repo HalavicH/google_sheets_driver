@@ -245,35 +245,35 @@ mod orm_tests {
             println!("{:?}", result);
             assert!(result.is_ok());
 
-            let vec = result.expect("Test: Expected to parse MatchedValueRange");
-            assert_eq!(vec.len(), 3);
+            let actual = result.expect("Test: Expected to parse MatchedValueRange");
+            assert_eq!(actual.len(), 3);
 
-            assert_eq!(
-                vec,
-                vec![
-                    Entity {
-                        position: SheetA1CellId::from_primitives("users", "A", 1),
-                        data: User {
-                            id: 1,
-                            name: "Joe".to_string(),
-                        },
+            let expected = vec![
+                Entity {
+                    position: SheetA1CellId::from_primitives("users", "A", 1),
+                    data: User {
+                        id: 1,
+                        name: "Joe".to_string(),
                     },
-                    Entity {
-                        position: SheetA1CellId::from_primitives("users", "A", 2),
-                        data: User {
-                            id: 2,
-                            name: "John".to_string(),
-                        },
+                },
+                Entity {
+                    position: SheetA1CellId::from_primitives("users", "A", 2),
+                    data: User {
+                        id: 2,
+                        name: "John".to_string(),
                     },
-                    Entity {
-                        position: SheetA1CellId::from_primitives("users", "A", 3),
-                        data: User {
-                            id: 3,
-                            name: "Jane".to_string(),
-                        },
-                    }
-                ]
-            )
+                },
+                Entity {
+                    position: SheetA1CellId::from_primitives("users", "A", 3),
+                    data: User {
+                        id: 3,
+                        name: "Jane".to_string(),
+                    },
+                },
+            ];
+
+            println!("{:#?}", expected);
+            assert_eq!(actual, expected)
         }
     }
 }
