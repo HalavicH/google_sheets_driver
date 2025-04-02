@@ -13,7 +13,6 @@ use serde_json::Value;
 use std::any::type_name;
 use std::fmt::{Debug, Formatter};
 
-use crate::types::{A1CellId, Entity, SheetA1Range};
 pub use google_sheets4::api::MatchedValueRange;
 
 #[derive(Debug, thiserror::Error)]

@@ -1,9 +1,9 @@
-use std::ops::Deref;
 use crate::spread_sheet_driver::SharedSpreadSheetDriver;
 use crate::types::{A1CellId, A1Range, Entity, EntityEssentials, SheetA1CellId, SheetA1Range};
-use error_stack::{bail, FutureExt, ResultExt};
+use error_stack::{FutureExt, ResultExt, bail};
 use google_sheets4::api::MatchedValueRange;
 use google_sheets4::hyper::body::HttpBody;
+use std::sync::Arc;
 
 #[derive(Debug, thiserror::Error, derive_more::Display)]
 pub enum RepositoryError {
@@ -14,11 +14,15 @@ pub enum RepositoryError {
 
 pub type Result<T> = error_stack::Result<T, RepositoryError>;
 
+pub type SharedRepository = Arc<Repository>;
 pub struct Repository {
     pub driver: SharedSpreadSheetDriver,
 }
 
 impl Repository {
+    pub fn new(driver: SharedSpreadSheetDriver) -> Self {
+        Self { driver }
+    }
     pub async fn find_in_range<E>(&self, start: SheetA1CellId, rows: u32) -> Result<Vec<Entity<E>>>
     where
         E: EntityEssentials,
@@ -43,11 +47,11 @@ impl Repository {
         matched_value_range.parse_positionally()
     }
 
-    pub async fn find_one<E>(&self, position: SheetA1CellId) -> Result<Option<Entity<E>>>
+    pub async fn find_by_position<E>(&self, start: SheetA1CellId) -> Result<Option<Entity<E>>>
     where
         E: EntityEssentials,
     {
-        let vec = self.find_in_range(position, 1).await?;
+        let vec = self.find_in_range(start, 1).await?;
         Ok(vec.first().cloned())
     }
 
@@ -59,12 +63,19 @@ impl Repository {
         let end_col = entity.position.cell.col.clone() + E::entity_width();
         let range = entity.position.clone().into_range(end_col, new_row);
 
-        let data = vec![entity.data.clone().try_into_row().change_context(RepositoryError::DriverError)?];
+        let data = vec![
+            entity
+                .data
+                .clone()
+                .try_into_row()
+                .change_context(RepositoryError::DriverError)?,
+        ];
 
         self.driver
             .lock()
             .await
-            .try_write_range(range.to_string().as_str(), data).await
+            .try_write_range(range.to_string().as_str(), data)
+            .await
             .change_context(RepositoryError::DriverError)?;
         Ok(())
     }
@@ -95,7 +106,7 @@ impl PositionalParsing for MatchedValueRange {
     where
         E: EntityEssentials,
     {
-        let sr = self.extract_range_from_filters().map_err(|e| e)?;
+        let sr = self.extract_range_from_filters()?;
         let start = sr.range.start;
 
         let data = self
@@ -121,7 +132,7 @@ impl PositionalParsing for MatchedValueRange {
                 result
             })
             .collect();
-        Ok(data?)
+        data
     }
 
     fn extract_range_from_filters(&self) -> Result<SheetA1Range> {
@@ -175,7 +186,7 @@ mod orm_tests {
             Self: Sized,
         {
             Ok(Self {
-                id: row.get(0).parse_optional_value(&row, "id")?,
+                id: row.first().parse_optional_value(&row, "id")?,
                 name: row.get(1).parse_optional_value(&row, "name")?,
             })
         }

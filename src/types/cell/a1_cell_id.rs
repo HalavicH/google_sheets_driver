@@ -1,11 +1,11 @@
 use crate::types::cell::conversions::string_to_dec_as_base26;
 use crate::types::cell::num_cell_id::NumCellId;
 use crate::types::letters::Letters;
+use crate::types::{A1Range, SheetA1Range};
 use std::cmp::Ordering;
 use std::fmt::Display;
 use std::num::{NonZero, NonZeroU32};
 use std::ops::{Add, Deref};
-use crate::types::{A1Range, SheetA1Range, SheetRange};
 
 pub type Result<T> = error_stack::Result<T, A1CellIdError>;
 
@@ -28,10 +28,13 @@ impl SheetA1CellId {
     }
 
     pub fn into_range<C>(self, end_col: C, end_row: u32) -> SheetA1Range
-    where C: Display
+    where
+        C: Display,
     {
-        SheetA1Range::new(self.sheet_name,
-        A1Range::new(self.cell, A1CellId::from_primitives(end_col, end_row)))
+        SheetA1Range::new(
+            self.sheet_name,
+            A1Range::new(self.cell, A1CellId::from_primitives(end_col, end_row)),
+        )
     }
 }
 
