@@ -14,6 +14,7 @@ use std::any::type_name;
 use std::fmt::{Debug, Formatter};
 
 pub use google_sheets4::api::MatchedValueRange;
+use crate::types::{A1CellId, Entity, SheetA1Range};
 
 #[derive(Debug, thiserror::Error)]
 pub enum SpreadSheetDriverError {
@@ -94,7 +95,7 @@ impl SpreadSheetDriver {
     /// Read API
     pub async fn get_range<R>(&self, range: R) -> MatchedValueRange
     where
-        R: Into<String>,
+        R: ToString,
     {
         self.try_get_range(range)
             .await
@@ -103,9 +104,9 @@ impl SpreadSheetDriver {
 
     pub async fn try_get_range<R>(&self, range: R) -> SsdResult<MatchedValueRange>
     where
-        R: Into<String>,
+        R: ToString,
     {
-        let range_str = range.into();
+        let range_str = range.to_string();
         let data = get_data_as_rows(self.client_ref(), &self.document_id, range_str.clone())
             .await
             .map_err(|e| SpreadSheetDriverError::ApiError(e.to_string()))?;
@@ -213,7 +214,7 @@ impl SpreadSheetDriver {
     /// Typed API ///
     pub async fn read_rows_deserialized_ignore_errors<T>(&self, range_str: &str) -> Vec<T>
     where
-        T: TryFromRow,
+        T: TryFromRawRow,
     {
         let result = self.try_get_range(range_str).await;
         let range = match result {
@@ -246,7 +247,7 @@ impl SpreadSheetDriver {
 
     pub async fn read_rows_deserialized<T>(&self, range_str: &str) -> SsdResult<Vec<T>>
     where
-        T: TryFromRow,
+        T: TryFromRawRow,
     {
         let range = self.get_range(range_str).await;
         let result: SsdResult<Vec<T>> = range
@@ -294,6 +295,7 @@ pub trait IntoStrVec {
     fn into_vec(self) -> Vec<Vec<Value>>;
 }
 
+
 impl IntoStrVec for MatchedValueRange {
     fn into_str_vec(self) -> Vec<Vec<String>> {
         self.into_vec()
@@ -310,10 +312,10 @@ impl IntoStrVec for MatchedValueRange {
     }
 }
 
-pub type Row = Vec<Value>;
+pub type RawRow = Vec<Value>;
 
-pub trait TryFromRow {
-    fn try_from_row(row: Row) -> SsdResult<Self>
+pub trait TryFromRawRow {
+    fn try_from_row(row: RawRow) -> SsdResult<Self>
     where
         Self: Sized;
 }

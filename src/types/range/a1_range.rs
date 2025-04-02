@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use crate::types::A1CellId;
 use crate::types::cell::a1_cell_id::A1CellIdError;
 use crate::types::letters::Letters;
@@ -215,9 +216,11 @@ impl SheetA1Range {
     pub fn from_str(page: &str, range: &str) -> Result<Self> {
         Ok(Self::new(page.to_string(), range.try_into()?))
     }
+}
 
-    pub fn to_string(&self) -> String {
-        format!("{}!{}", self.sheet, self.range.to_string())
+impl Display for SheetA1Range {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", format!("{}!{}", self.sheet, self.range.to_string()))
     }
 }
 

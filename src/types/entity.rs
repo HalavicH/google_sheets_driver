@@ -1,6 +1,7 @@
 use crate::types::A1CellId;
 use std::fmt::Debug;
 use std::ops::Deref;
+use crate::spread_sheet_driver::TryFromRawRow;
 
 /// Position aware object which knows its position on the spreadsheet
 pub struct Entity<E>
@@ -20,10 +21,8 @@ impl<E: EntityEssentials> Deref for Entity<E> {
     }
 }
 
-pub trait EntityEssentials
-where
-    Self: Sized + Debug,
+pub trait EntityEssentials: Sized + Debug + TryFromRawRow
 {
     /// Returns width in columns of the entity
-    fn entity_width() -> usize;
+    fn entity_width() -> u32;
 }
