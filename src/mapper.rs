@@ -1,4 +1,3 @@
-use crate::spread_sheet_driver::SpreadSheetDriverError;
 use derive_more::Deref;
 use derive_more::with_trait::From;
 use error_stack::{Context, Report, ResultExt};
@@ -6,23 +5,45 @@ use google_sheets4::chrono::{DateTime, Utc};
 use serde_json::Value;
 use std::any::type_name;
 use std::fmt;
+use thiserror::Error;
 
-pub type Result<T> = error_stack::Result<T, SpreadSheetDriverError>;
+pub type Result<T> = error_stack::Result<T, ParseError>;
+#[derive(Debug, Error)]
+pub enum ParseError {
+    #[error("Field {0} is not found in row")]
+    FieldIsMissing(&'static str),
+    #[error("Can't convert {0} into string")]
+    JsonValueToStringError(Value),
+    #[error("Can't deserialize JSON string into type")]
+    JsonStringDeserializationError,
+    #[error("Can't deserialize Cell '{column_name}' into type {type_name} from string {input}")]
+    CellDeserializationError {
+        column_name: &'static str,
+        type_name: &'static str,
+        input: String,
+    },
+    #[error("Expected row length {min}-{max}, but it's {actual}")]
+    InvalidRowLength {
+        min: usize,
+        max: usize,
+        actual: usize,
+    },
+}
 
 pub trait ParseOptionalValue {
-    fn parse_optional_value<T>(self, row: &Vec<Value>, field_name: &str) -> Result<T>
+    fn parse_optional_value<T>(self, row: &Vec<Value>, field_name: &'static str) -> Result<T>
     where
         T: CellSerde + Default;
     // TODO: Make it nicer by bounding receiver (self) to be an Option<Value>
+
     fn try_unwrap_value<'a>(
         value: Option<&'a Value>,
         row: &Vec<Value>,
-        field_name: &str,
+        field_name: &'static str,
     ) -> Result<&'a Value> {
         value.ok_or_else(|| {
-            Report::new(SpreadSheetDriverError::ParseError(format!(
-                "Field {field_name:?} is not present in row: {row:?}"
-            )))
+            Report::new(ParseError::FieldIsMissing(field_name))
+                .attach_printable(format!("Input row: {row:?}"))
         })
     }
 }
@@ -31,7 +52,7 @@ impl ParseOptionalValue for Option<&Value> {
     fn parse_optional_value<T: CellSerde + Default>(
         self,
         row: &Vec<Value>,
-        field_name: &str,
+        field_name: &'static str,
     ) -> Result<T> {
         let type_name = type_name::<T>();
         let result = Self::try_unwrap_value(self, row, field_name);
@@ -45,16 +66,16 @@ impl ParseOptionalValue for Option<&Value> {
             let string = v
                 .clone()
                 .as_str()
-                .ok_or(SpreadSheetDriverError::ParseError(format!(
-                    "Expected to convert value to string: {v:?}"
-                )))?
+                .ok_or_else(|| ParseError::JsonValueToStringError(v.clone()))?
                 .to_owned();
 
-            CellSerde::deserialize(string.into()).change_context(
-                SpreadSheetDriverError::ParseError(format!(
-                    "Can't parse {field_name:?} into {type_name} in row: {row:?}"
-                )),
-            )
+            CellSerde::deserialize(string.clone().into()).change_context_lazy(|| {
+                ParseError::CellDeserializationError {
+                    column_name: field_name,
+                    type_name,
+                    input: string,
+                }
+            })
         })
     }
 }

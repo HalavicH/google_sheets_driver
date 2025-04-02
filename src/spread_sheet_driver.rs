@@ -1,5 +1,5 @@
 use crate::halavich_utils_helpers::{AMShared, ErrorStackExt};
-use error_stack::{bail, report};
+use error_stack::{ResultExt, bail, report};
 use google_sheets4::api::{
     BatchGetValuesByDataFilterRequest, BatchGetValuesByDataFilterResponse, DataFilter, ValueRange,
 };
@@ -13,6 +13,7 @@ use serde_json::Value;
 use std::any::type_name;
 use std::fmt::{Debug, Formatter};
 
+use crate::mapper;
 pub use google_sheets4::api::MatchedValueRange;
 
 #[derive(Debug, thiserror::Error)]
@@ -21,7 +22,7 @@ pub enum SpreadSheetDriverError {
     RangeNotFound(String),
     #[error("Spreadsheet API error ({0})")]
     ApiError(String),
-    #[error("Parsing error ({0})")]
+    #[error("Can't parse row ({0})")]
     ParseError(String),
     #[error("Invalid argument {0}")]
     InvalidArgument(String),
@@ -252,9 +253,10 @@ impl SpreadSheetDriver {
         let result: SsdResult<Vec<T>> = range
             .into_vec()
             .into_iter()
-            // TODO: use .filter_map(|v| v.....
-            .map(|row| T::deserialize(row))
-            // .flatten()
+            .map(|row| {
+                let row_dbg = format!("{:?}", row);
+                T::deserialize(row).change_context(SpreadSheetDriverError::ParseError(row_dbg))
+            })
             .collect();
         result
     }
@@ -310,12 +312,12 @@ impl IntoStrVec for MatchedValueRange {
     }
 }
 
-pub type RawRow = Vec<Value>;
+pub type SheetRow = Vec<Value>;
 
 pub trait SheetRowSerde {
-    fn deserialize(row: RawRow) -> SsdResult<Self>
+    fn deserialize(row: SheetRow) -> mapper::Result<Self>
     where
         Self: Sized;
 
-    fn serialize(self) -> SsdResult<RawRow>;
+    fn serialize(self) -> mapper::Result<SheetRow>;
 }
