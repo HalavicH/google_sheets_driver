@@ -50,12 +50,6 @@ impl SheetRawCellSerde for i64 {
     }
 }
 
-impl<T: SheetRawCellSerde> SheetRawCellSerde for Option<T> {
-    fn deserialize(cell: SheetRawCell) -> CellSerdeResult<Self> {
-        Ok(T::deserialize(cell).ok())
-    }
-}
-
 impl SheetRawCellSerde for DateTime<Utc> {
     fn deserialize(cell: SheetRawCell) -> CellSerdeResult<Self> {
         cell.parse::<DateTime<Utc>>()

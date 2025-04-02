@@ -27,11 +27,11 @@ impl<T> ArcEd for T {
 }
 
 pub trait ErrorStackExt {
-    fn to_string_no_bt(self) -> String;
+    fn to_string_no_bt(&self) -> String;
 }
 
 impl<E> ErrorStackExt for error_stack::Report<E> {
-    fn to_string_no_bt(self) -> String {
+    fn to_string_no_bt(&self) -> String {
         let string = format!("{:?}", self);
         let split = string
             .split("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
