@@ -23,7 +23,7 @@ impl Repository {
     pub fn new(driver: SharedSpreadSheetDriver) -> Self {
         Self { driver }
     }
-    pub async fn find_in_range<E>(&self, start: SheetA1CellId, rows: u32) -> Result<Vec<Entity<E>>>
+    pub async fn find_in_range<E>(&self, start: &SheetA1CellId, rows: u32) -> Result<Vec<Entity<E>>>
     where
         E: EntityEssentials,
     {
@@ -34,7 +34,7 @@ impl Repository {
         let end_cell = start.cell.clone() + offset;
         let range = SheetA1Range::new(
             start.sheet_name.to_string(),
-            A1Range::new(start.cell, end_cell),
+            A1Range::new(start.cell.clone(), end_cell),
         );
         let matched_value_range = self
             .driver
@@ -51,7 +51,7 @@ impl Repository {
     where
         E: EntityEssentials,
     {
-        let vec = self.find_in_range(start, 1).await?;
+        let vec = self.find_in_range(&start, 1).await?;
         Ok(vec.first().cloned())
     }
 

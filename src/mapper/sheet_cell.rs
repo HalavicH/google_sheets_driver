@@ -36,6 +36,14 @@ impl SheetRawCellSerde for i32 {
     }
 }
 
+impl SheetRawCellSerde for u32 {
+    fn deserialize(cell: SheetRawCell) -> CellSerdeResult<Self> {
+        cell.parse::<u32>()
+            .map_err(Report::new)
+            .change_context(TryFromCellError)
+    }
+}
+
 impl SheetRawCellSerde for String {
     fn deserialize(cell: SheetRawCell) -> CellSerdeResult<Self> {
         Ok(cell.to_string())

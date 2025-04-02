@@ -1,3 +1,4 @@
+use error_stack::Report;
 /// HalavicH's utils & helpers (HUH)
 /// Module to collect cross-project helper functions
 use std::sync::Arc;
@@ -23,6 +24,31 @@ pub trait ArcEd {
 impl<T> ArcEd for T {
     fn into_arc(self) -> Arc<Self> {
         Arc::new(self)
+    }
+}
+
+pub trait Boxed {
+    fn boxed(self) -> Box<Self>
+    where
+        Self: Sized,
+    {
+        Box::new(self)
+    }
+}
+
+impl<T> Boxed for T {} // Blanket implementation
+
+///// Error Stack Ext /////
+pub trait IntoReport<T, E> {
+    fn into_report(self) -> error_stack::Result<T, E>;
+}
+
+impl<T, E> IntoReport<T, E> for Result<T, E>
+where
+    E: std::error::Error + Send + Sync + 'static,
+{
+    fn into_report(self) -> error_stack::Result<T, E> {
+        self.map_err(Report::new)
     }
 }
 
