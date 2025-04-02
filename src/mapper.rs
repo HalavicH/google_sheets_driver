@@ -1,22 +1,24 @@
 use crate::spread_sheet_driver::SpreadSheetDriverError;
+use derive_more::Deref;
+use derive_more::with_trait::From;
 use error_stack::{Context, Report, ResultExt};
 use google_sheets4::chrono::{DateTime, Utc};
 use serde_json::Value;
 use std::any::type_name;
 use std::fmt;
 
-pub type ParseResult<T> = error_stack::Result<T, SpreadSheetDriverError>;
+pub type Result<T> = error_stack::Result<T, SpreadSheetDriverError>;
 
 pub trait ParseOptionalValue {
-    fn parse_optional_value<T>(self, row: &Vec<Value>, field_name: &str) -> ParseResult<T>
+    fn parse_optional_value<T>(self, row: &Vec<Value>, field_name: &str) -> Result<T>
     where
-        T: TryFromCell + Default;
+        T: CellSerde + Default;
     // TODO: Make it nicer by bounding receiver (self) to be an Option<Value>
     fn try_unwrap_value<'a>(
         value: Option<&'a Value>,
         row: &Vec<Value>,
         field_name: &str,
-    ) -> ParseResult<&'a Value> {
+    ) -> Result<&'a Value> {
         value.ok_or_else(|| {
             Report::new(SpreadSheetDriverError::ParseError(format!(
                 "Field {field_name:?} is not present in row: {row:?}"
@@ -26,25 +28,33 @@ pub trait ParseOptionalValue {
 }
 
 impl ParseOptionalValue for Option<&Value> {
-    fn parse_optional_value<T: TryFromCell + Default>(
+    fn parse_optional_value<T: CellSerde + Default>(
         self,
         row: &Vec<Value>,
         field_name: &str,
-    ) -> ParseResult<T> {
+    ) -> Result<T> {
         let type_name = type_name::<T>();
         let result = Self::try_unwrap_value(self, row, field_name);
 
-        // TODO: If 'T' Is Option<?> -> return None
         if type_name.starts_with("core::option::Option<") {
-            return Ok(T::default());
+            return Ok(T::default()); // Returns None
         }
 
         result.and_then(|v| {
-            let str = v.as_str().unwrap_or_else(|| panic!("Can't convert {v:?}"));
-            log::debug!("Parsing {:?} into {}", str, type_name);
-            TryFromCell::try_from_cell(str).change_context(SpreadSheetDriverError::ParseError(
-                format!("Can't parse {field_name:?} into {type_name} in row: {row:?}"),
-            ))
+            log::debug!("Parsing {:?} into {}", v, type_name);
+            let string = v
+                .clone()
+                .as_str()
+                .ok_or(SpreadSheetDriverError::ParseError(format!(
+                    "Expected to convert value to string: {v:?}"
+                )))?
+                .to_owned();
+
+            CellSerde::deserialize(string.into()).change_context(
+                SpreadSheetDriverError::ParseError(format!(
+                    "Can't parse {field_name:?} into {type_name} in row: {row:?}"
+                )),
+            )
         })
     }
 }
@@ -61,42 +71,48 @@ impl fmt::Display for TryFromCellError {
 
 pub type TryFromCellResult<T> = error_stack::Result<T, TryFromCellError>;
 
-pub trait TryFromCell {
-    fn try_from_cell(cell: &str) -> TryFromCellResult<Self>
+#[derive(Debug, Deref, From)]
+pub struct Cell(String);
+
+pub trait CellSerde {
+    fn serialize(&self) -> Cell {
+        todo!()
+    }
+    fn deserialize(cell: Cell) -> TryFromCellResult<Self>
     where
         Self: Sized;
 }
 
-impl TryFromCell for i32 {
-    fn try_from_cell(cell: &str) -> TryFromCellResult<Self> {
+impl CellSerde for i32 {
+    fn deserialize(cell: Cell) -> TryFromCellResult<Self> {
         cell.parse::<i32>()
             .map_err(Report::new)
             .change_context(TryFromCellError)
     }
 }
 
-impl TryFromCell for String {
-    fn try_from_cell(cell: &str) -> TryFromCellResult<Self> {
+impl CellSerde for String {
+    fn deserialize(cell: Cell) -> TryFromCellResult<Self> {
         Ok(cell.to_string())
     }
 }
 
-impl TryFromCell for i64 {
-    fn try_from_cell(cell: &str) -> TryFromCellResult<Self> {
+impl CellSerde for i64 {
+    fn deserialize(cell: Cell) -> TryFromCellResult<Self> {
         cell.parse::<i64>()
             .map_err(Report::new)
             .change_context(TryFromCellError)
     }
 }
 
-impl<T: TryFromCell> TryFromCell for Option<T> {
-    fn try_from_cell(cell: &str) -> TryFromCellResult<Self> {
-        Ok(T::try_from_cell(cell).ok())
+impl<T: CellSerde> CellSerde for Option<T> {
+    fn deserialize(cell: Cell) -> TryFromCellResult<Self> {
+        Ok(T::deserialize(cell).ok())
     }
 }
 
-impl TryFromCell for DateTime<Utc> {
-    fn try_from_cell(cell: &str) -> TryFromCellResult<Self> {
+impl CellSerde for DateTime<Utc> {
+    fn deserialize(cell: Cell) -> TryFromCellResult<Self> {
         cell.parse::<DateTime<Utc>>()
             .map_err(Report::new)
             .change_context(TryFromCellError)
