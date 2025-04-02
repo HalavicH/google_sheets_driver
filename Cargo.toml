@@ -1,8 +1,10 @@
 [package]
 name = "google_sheets_driver"
-description = "google-sheets4 wrapper providing more convenient but narrover functionality to use GS as persistent storage"
+description = "google-sheets4 wrapper providing more convenient but narrover functionality to use GS as persistent storage. Includes fake ORM"
 version = "0.0.1"
 edition = "2024"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
 
 [dependencies]
 error-stack = "0.5.0"
