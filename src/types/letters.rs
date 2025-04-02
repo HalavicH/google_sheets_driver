@@ -3,6 +3,7 @@
 use crate::types::cell::conversions::{dec_to_string_as_base26, string_to_dec_as_base26};
 use derive_more::Deref;
 use std::cmp::Ordering;
+use std::fmt::{Display, Formatter};
 use std::ops::{Add, Sub};
 
 /// Encapsulates the letters of the alphabet to use it for the cell id
@@ -21,6 +22,11 @@ impl Letters {
     }
 }
 
+impl Display for Letters {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
 impl From<&str> for Letters {
     fn from(value: &str) -> Self {
         Self::new(value.to_string())

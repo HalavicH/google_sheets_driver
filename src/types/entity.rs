@@ -1,7 +1,7 @@
-use crate::types::A1CellId;
+use crate::spread_sheet_driver::{TryFromRawRow, TryIntoRawRow};
+use crate::types::SheetA1CellId;
 use std::fmt::Debug;
 use std::ops::Deref;
-use crate::spread_sheet_driver::TryFromRawRow;
 
 /// Position aware object which knows its position on the spreadsheet
 #[derive(Debug, Clone, PartialEq)]
@@ -9,7 +9,7 @@ pub struct Entity<E>
 where
     E: EntityEssentials,
 {
-    pub position: A1CellId,
+    pub position: SheetA1CellId,
     pub data: E,
 }
 
@@ -22,8 +22,7 @@ impl<E: EntityEssentials> Deref for Entity<E> {
     }
 }
 
-pub trait EntityEssentials: Sized + Debug + TryFromRawRow + Clone + PartialEq
-{
+pub trait EntityEssentials: Sized + Debug + TryFromRawRow + TryIntoRawRow + Clone + PartialEq {
     /// Returns width in columns of the entity
     fn entity_width() -> u32;
 }

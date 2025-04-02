@@ -13,8 +13,8 @@ use serde_json::Value;
 use std::any::type_name;
 use std::fmt::{Debug, Formatter};
 
-pub use google_sheets4::api::MatchedValueRange;
 use crate::types::{A1CellId, Entity, SheetA1Range};
+pub use google_sheets4::api::MatchedValueRange;
 
 #[derive(Debug, thiserror::Error)]
 pub enum SpreadSheetDriverError {
@@ -295,7 +295,6 @@ pub trait IntoStrVec {
     fn into_vec(self) -> Vec<Vec<Value>>;
 }
 
-
 impl IntoStrVec for MatchedValueRange {
     fn into_str_vec(self) -> Vec<Vec<String>> {
         self.into_vec()
@@ -318,4 +317,8 @@ pub trait TryFromRawRow {
     fn try_from_row(row: RawRow) -> SsdResult<Self>
     where
         Self: Sized;
+}
+
+pub trait TryIntoRawRow {
+    fn try_into_row(self) -> SsdResult<RawRow>;
 }

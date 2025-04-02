@@ -2,8 +2,10 @@ use crate::types::cell::conversions::string_to_dec_as_base26;
 use crate::types::cell::num_cell_id::NumCellId;
 use crate::types::letters::Letters;
 use std::cmp::Ordering;
+use std::fmt::Display;
 use std::num::{NonZero, NonZeroU32};
 use std::ops::{Add, Deref};
+use crate::types::{A1Range, SheetA1Range, SheetRange};
 
 pub type Result<T> = error_stack::Result<T, A1CellIdError>;
 
@@ -11,6 +13,26 @@ pub type Result<T> = error_stack::Result<T, A1CellIdError>;
 pub struct SheetA1CellId {
     pub sheet_name: String,
     pub cell: A1CellId,
+}
+
+impl SheetA1CellId {
+    pub fn from_primitives<N, C>(name: N, col: C, row: u32) -> Self
+    where
+        N: Display,
+        C: Display,
+    {
+        SheetA1CellId {
+            sheet_name: name.to_string(),
+            cell: A1CellId::from_primitives(col, row),
+        }
+    }
+
+    pub fn into_range<C>(self, end_col: C, end_row: u32) -> SheetA1Range
+    where C: Display
+    {
+        SheetA1Range::new(self.sheet_name,
+        A1Range::new(self.cell, A1CellId::from_primitives(end_col, end_row)))
+    }
 }
 
 #[derive(Debug, Clone, thiserror::Error, PartialEq)]
@@ -68,10 +90,13 @@ impl A1CellId {
             row: number,
         }
     }
-    pub fn from_primitives(letter: &str, number: u32) -> Self {
+    pub fn from_primitives<C>(col: C, row: u32) -> Self
+    where
+        C: Display,
+    {
         Self {
-            col: Letters::new(letter.to_string()),
-            row: NonZero::new(number).expect("Expected a non-zero cell row number"),
+            col: Letters::new(col.to_string()),
+            row: NonZero::new(row).expect("Expected a non-zero cell row number"),
         }
     }
 

@@ -1,7 +1,7 @@
-use std::fmt::Display;
 use crate::types::A1CellId;
 use crate::types::cell::a1_cell_id::A1CellIdError;
 use crate::types::letters::Letters;
+use std::fmt::Display;
 use std::num::NonZero;
 use thiserror::Error;
 
@@ -220,7 +220,11 @@ impl SheetA1Range {
 
 impl Display for SheetA1Range {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", format!("{}!{}", self.sheet, self.range.to_string()))
+        write!(
+            f,
+            "{}",
+            format!("{}!{}", self.sheet, self.range.to_string())
+        )
     }
 }
 
