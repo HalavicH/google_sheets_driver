@@ -33,6 +33,7 @@ impl SheetRawCellSerde for i32 {
         cell.parse::<i32>()
             .map_err(Report::new)
             .change_context(TryFromCellError)
+            .attach_printable_lazy(|| format!("Source data: {cell:?}"))
     }
 }
 

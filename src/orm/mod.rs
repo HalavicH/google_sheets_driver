@@ -28,7 +28,7 @@ impl Repository {
         E: EntityEssentials,
     {
         let offset = A1CellId::new(
-            start.cell.col.clone() + E::entity_width(),
+            start.cell.col.clone() + E::entity_width() - 1,
             start.cell.row.saturating_add(rows),
         );
         let end_cell = start.cell.clone() + offset;
