@@ -1,4 +1,4 @@
-use crate::spread_sheet_driver::{TryFromRawRow, TryIntoRawRow};
+use crate::spread_sheet_driver::SheetRowSerde;
 use crate::types::SheetA1CellId;
 use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
@@ -28,9 +28,7 @@ impl<E: EntityEssentials> DerefMut for Entity<E> {
     }
 }
 
-pub trait EntityEssentials:
-    Sized + Debug + TryFromRawRow + TryIntoRawRow + Clone + PartialEq
-{
+pub trait EntityEssentials: Sized + Debug + SheetRowSerde + Clone + PartialEq {
     /// Returns width in columns of the entity
     fn entity_width() -> u32;
 }

@@ -213,7 +213,7 @@ impl SpreadSheetDriver {
     /// Typed API ///
     pub async fn read_rows_deserialized_ignore_errors<T>(&self, range_str: &str) -> Vec<T>
     where
-        T: TryFromRawRow,
+        T: SheetRowSerde,
     {
         let result = self.try_get_range(range_str).await;
         let range = match result {
@@ -228,7 +228,7 @@ impl SpreadSheetDriver {
             .into_iter()
             // TODO: use .filter_map(|v| v.....
             .filter_map(|row| {
-                let result = T::try_from_row(row);
+                let result = T::deserialize(row);
                 match result {
                     Ok(v) => Some(v),
                     Err(err) => {
@@ -246,14 +246,14 @@ impl SpreadSheetDriver {
 
     pub async fn read_rows_deserialized<T>(&self, range_str: &str) -> SsdResult<Vec<T>>
     where
-        T: TryFromRawRow,
+        T: SheetRowSerde,
     {
         let range = self.get_range(range_str).await;
         let result: SsdResult<Vec<T>> = range
             .into_vec()
             .into_iter()
             // TODO: use .filter_map(|v| v.....
-            .map(|row| T::try_from_row(row))
+            .map(|row| T::deserialize(row))
             // .flatten()
             .collect();
         result
@@ -312,12 +312,10 @@ impl IntoStrVec for MatchedValueRange {
 
 pub type RawRow = Vec<Value>;
 
-pub trait TryFromRawRow {
-    fn try_from_row(row: RawRow) -> SsdResult<Self>
+pub trait SheetRowSerde {
+    fn deserialize(row: RawRow) -> SsdResult<Self>
     where
         Self: Sized;
-}
 
-pub trait TryIntoRawRow {
-    fn try_into_row(self) -> SsdResult<RawRow>;
+    fn serialize(self) -> SsdResult<RawRow>;
 }

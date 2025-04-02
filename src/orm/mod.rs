@@ -67,7 +67,7 @@ impl Repository {
             entity
                 .data
                 .clone()
-                .try_into_row()
+                .serialize()
                 .change_context(RepositoryError::DriverError)?,
         ];
 
@@ -119,7 +119,7 @@ impl PositionalParsing for MatchedValueRange {
             .into_iter()
             .enumerate()
             .map(|(i, value)| {
-                let result: Result<Entity<E>> = E::try_from_row(value)
+                let result: Result<Entity<E>> = E::deserialize(value)
                     .map(|data| Entity {
                         position: SheetA1CellId::from_primitives(
                             &sr.sheet,
@@ -169,7 +169,7 @@ impl PositionalParsing for MatchedValueRange {
 mod orm_tests {
     use super::*;
     use crate::mapper::ParseOptionalValue;
-    use crate::spread_sheet_driver::{RawRow, SsdResult, TryFromRawRow, TryIntoRawRow};
+    use crate::spread_sheet_driver::{RawRow, SheetRowSerde, SsdResult};
     use google_sheets4::api::{DataFilter, ValueRange};
     use serde_json::Value;
     use std::fmt::Debug;
@@ -180,8 +180,8 @@ mod orm_tests {
         name: String,
     }
 
-    impl TryFromRawRow for User {
-        fn try_from_row(row: RawRow) -> SsdResult<Self>
+    impl SheetRowSerde for User {
+        fn deserialize(row: RawRow) -> SsdResult<Self>
         where
             Self: Sized,
         {
@@ -190,10 +190,7 @@ mod orm_tests {
                 name: row.get(1).parse_optional_value(&row, "name")?,
             })
         }
-    }
-
-    impl TryIntoRawRow for User {
-        fn try_into_row(self) -> SsdResult<RawRow> {
+        fn serialize(self) -> SsdResult<RawRow> {
             Ok(vec![
                 Value::String(self.name),
                 Value::String(self.id.to_string()),
