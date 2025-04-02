@@ -4,36 +4,8 @@ use serde_json::Value;
 use std::any::type_name;
 use thiserror::Error;
 
-pub type SheetRow = Vec<Value>;
-
-pub trait SheetRowSerde {
-    fn deserialize(row: SheetRow) -> Result<Self>
-    where
-        Self: Sized;
-
-    fn serialize(self) -> Result<SheetRow>;
-}
-
-pub trait SheetRowExt {
-    /// cell_id - 0-based array index
-    fn parse_cell<T: SheetRawCellSerde + Default>(
-        &self,
-        cell_id: usize,
-        column_name: &'static str,
-    ) -> Result<T>;
-}
-
-impl SheetRowExt for SheetRow {
-    fn parse_cell<T: SheetRawCellSerde + Default>(
-        &self,
-        cell_id: usize,
-        column_name: &'static str,
-    ) -> Result<T> {
-        self.get(cell_id).parse_optional_value(self, column_name)
-    }
-}
-
 pub type Result<T> = error_stack::Result<T, ParseError>;
+
 #[derive(Debug, Error)]
 pub enum ParseError {
     #[error("Field {0} is not found in row")]
@@ -56,36 +28,34 @@ pub enum ParseError {
     },
 }
 
-trait ParseOptionalValue {
-    fn parse_optional_value<T>(self, row: &Vec<Value>, field_name: &'static str) -> Result<T>
-    where
-        T: SheetRawCellSerde + Default;
-    // TODO: Make it nicer by bounding receiver (self) to be an Option<Value>
+pub type SheetRow = Vec<Value>;
 
-    fn try_unwrap_value<'a>(
-        value: Option<&'a Value>,
-        row: &Vec<Value>,
-        field_name: &'static str,
-    ) -> Result<&'a Value> {
-        value.ok_or_else(|| {
-            Report::new(ParseError::FieldIsMissing(field_name))
-                .attach_printable(format!("Input row: {row:?}"))
-        })
-    }
+pub trait SheetRowSerde {
+    fn deserialize(row: SheetRow) -> Result<Self>
+    where
+        Self: Sized;
+
+    fn serialize(self) -> Result<SheetRow>;
 }
 
-impl ParseOptionalValue for Option<&Value> {
-    fn parse_optional_value<T: SheetRawCellSerde + Default>(
-        self,
-        row: &Vec<Value>,
-        field_name: &'static str,
+pub trait SheetRowExt {
+    /// cell_id - 0-based array index
+    fn parse_cell<T: SheetRawCellSerde>(
+        &self,
+        cell_id: usize,
+        column_name: &'static str,
+    ) -> Result<T>;
+}
+impl SheetRowExt for SheetRow {
+    fn parse_cell<T: SheetRawCellSerde>(
+        &self,
+        cell_id: usize,
+        column_name: &'static str,
     ) -> Result<T> {
-        let type_name = type_name::<T>();
-        let result = Self::try_unwrap_value(self, row, field_name);
+        let cell = self.get(cell_id);
 
-        if type_name.starts_with("core::option::Option<") {
-            return Ok(T::default()); // Returns None
-        }
+        let type_name = type_name::<T>();
+        let result = try_unwrap_value(cell, self, column_name);
 
         result.and_then(|v| {
             log::debug!("Parsing {:?} into {}", v, type_name);
@@ -97,11 +67,22 @@ impl ParseOptionalValue for Option<&Value> {
 
             SheetRawCellSerde::deserialize(string.clone().into()).change_context_lazy(|| {
                 ParseError::CellDeserializationError {
-                    column_name: field_name,
+                    column_name,
                     type_name,
                     input: string,
                 }
             })
         })
     }
+}
+
+fn try_unwrap_value<'a>(
+    value: Option<&'a Value>,
+    row: &Vec<Value>,
+    field_name: &'static str,
+) -> Result<&'a Value> {
+    value.ok_or_else(|| {
+        Report::new(ParseError::FieldIsMissing(field_name))
+            .attach_printable(format!("Input row: {row:?}"))
+    })
 }
