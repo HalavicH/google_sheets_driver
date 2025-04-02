@@ -4,6 +4,7 @@ use std::ops::Deref;
 use crate::spread_sheet_driver::TryFromRawRow;
 
 /// Position aware object which knows its position on the spreadsheet
+#[derive(Debug, Clone, PartialEq)]
 pub struct Entity<E>
 where
     E: EntityEssentials,
@@ -21,7 +22,7 @@ impl<E: EntityEssentials> Deref for Entity<E> {
     }
 }
 
-pub trait EntityEssentials: Sized + Debug + TryFromRawRow
+pub trait EntityEssentials: Sized + Debug + TryFromRawRow + Clone + PartialEq
 {
     /// Returns width in columns of the entity
     fn entity_width() -> u32;

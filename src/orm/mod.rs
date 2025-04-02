@@ -1,4 +1,4 @@
-use crate::spread_sheet_driver::{SharedSpreadSheetDriver, SpreadSheetDriverError};
+use crate::spread_sheet_driver::SharedSpreadSheetDriver;
 use crate::types::{A1CellId, A1Range, Entity, EntityEssentials, SheetA1CellId, SheetA1Range};
 use error_stack::{bail, ResultExt};
 use google_sheets4::api::MatchedValueRange;
@@ -133,5 +133,92 @@ impl PositionalParsing for MatchedValueRange {
             .map_err(|e| RepositoryError::InvalidArgument(format!("{e}")))?;
 
         Ok(sr)
+    }
+}
+
+#[cfg(test)]
+mod positional_parsing_tests {
+    use super::*;
+    use crate::mapper::ParseOptionalValue;
+    use crate::spread_sheet_driver::{RawRow, SsdResult, TryFromRawRow};
+    use google_sheets4::api::{DataFilter, ValueRange};
+    use serde_json::Value;
+    use std::fmt::Debug;
+
+    #[derive(Debug, Clone, PartialEq)]
+    struct User {
+        id: i32,
+        name: String,
+    }
+
+    impl TryFromRawRow for User {
+        fn try_from_row(row: RawRow) -> SsdResult<Self>
+        where
+            Self: Sized,
+        {
+            Ok(Self {
+                id: row.get(0).parse_optional_value(&row, "id")?,
+                name: row.get(1).parse_optional_value(&row, "name")?,
+            })
+        }
+    }
+
+    impl EntityEssentials for User {
+        fn entity_width() -> u32 { 2 }
+    }
+
+    fn get_mocked_query_response() -> MatchedValueRange {
+        MatchedValueRange {
+            data_filters: Some(vec![DataFilter {
+                a1_range: Some("users!A1:B3".to_string()),
+                ..Default::default()
+            }]),
+            value_range: Some(
+                ValueRange {
+                    values: Some(vec![
+                        vec![Value::String("1".to_string()), Value::String("Joe".to_string())],
+                        vec![Value::String("2".to_string()), Value::String("John".to_string())],
+                        vec![Value::String("3".to_string()), Value::String("Jane".to_string())],
+                    ]),
+                    ..Default::default()
+                }
+            ),
+        }
+    }
+
+    #[test]
+    fn given_valid_mvr__when_parse__then_success() {
+        let input = get_mocked_query_response();
+
+        let result: Result<Vec<Entity<User>>> = input.parse_positionally();
+        assert!(result.is_ok());
+
+        let vec = result.expect("Test: Expected to parse MatchedValueRange");
+        assert_eq!(vec.len(), 3);
+
+        assert_eq!(vec, vec![
+            Entity {
+                position: A1CellId::from_primitives("A", 1),
+                data: User {
+                    id: 1,
+                    name: "Joe".to_string(),
+                },
+            },
+            Entity {
+                position: A1CellId::from_primitives("A", 2),
+                data: User {
+                    id: 2,
+                    name: "John".to_string(),
+                },
+            },
+            Entity {
+                position: A1CellId::from_primitives("A", 3),
+                data: User {
+                    id: 3,
+                    name: "Jane".to_string(),
+                },
+            }
+
+        ])
     }
 }
