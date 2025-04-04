@@ -14,7 +14,7 @@ pub enum ParseError {
     JsonValueToStringError(Value),
     #[error("Can't deserialize JSON string into type")]
     JsonStringDeserializationError,
-    #[error("Can't deserialize Cell '{column_name}' into type {type_name} from string {input}")]
+    #[error("Can't deserialize Cell '{column_name}' into type '{type_name}' from string '{input}'")]
     CellDeserializationError {
         column_name: &'static str,
         type_name: &'static str,
