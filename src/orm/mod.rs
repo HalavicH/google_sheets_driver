@@ -4,6 +4,7 @@ use error_stack::{FutureExt, ResultExt, bail};
 use google_sheets4::api::MatchedValueRange;
 use google_sheets4::hyper::body::HttpBody;
 use std::sync::Arc;
+use tracing::debug;
 
 #[derive(Debug, thiserror::Error, derive_more::Display)]
 pub enum RepositoryError {
@@ -71,7 +72,7 @@ impl Repository {
                 .change_context(RepositoryError::DriverError)?,
         ];
 
-        log::debug!("Updating entity\n{:#?}\nas raw data:{:#?}", entity, data);
+        debug!("Updating entity\n{:#?}\nas raw data:{:#?}", entity, data);
 
         self.driver
             .lock()

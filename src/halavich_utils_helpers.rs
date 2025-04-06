@@ -3,6 +3,7 @@ use error_stack::Report;
 /// Module to collect cross-project helper functions
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tracing::error;
 
 /// Asynchronously mutually exclusive shared object (wrapper for the Arc<tokio::sync::Mutex>>)
 pub type AMShared<T> = Arc<Mutex<T>>;
@@ -69,7 +70,7 @@ impl<E: 'static> ErrorStackExt for error_stack::Report<E> {
     }
 
     fn into_error_and_log(self) -> impl std::error::Error + Send + Sync + 'static {
-        log::error!("Can't find users in range: {}", self.to_string_no_bt());
+        error!("Can't find users in range: {}", self.to_string_no_bt());
         self.into_error()
     }
 }

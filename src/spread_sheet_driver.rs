@@ -8,13 +8,13 @@ use google_sheets4::hyper::{Body, Response};
 use google_sheets4::hyper_rustls::HttpsConnector;
 use google_sheets4::oauth2::ServiceAccountAuthenticator;
 use google_sheets4::{Error, Sheets, hyper, hyper_rustls, oauth2};
-use log::error;
 use serde_json::Value;
 use std::any::type_name;
 use std::fmt::{Debug, Formatter};
 
 use crate::mapper::sheet_row::SheetRowSerde;
 pub use google_sheets4::api::MatchedValueRange;
+use tracing::{debug, error};
 
 #[derive(Debug, thiserror::Error)]
 pub enum SpreadSheetDriverError {
@@ -111,7 +111,7 @@ impl SpreadSheetDriver {
             .await
             .map_err(|e| SpreadSheetDriverError::ApiError(e.to_string()))?;
         let maybe_range = data.1.value_ranges.map(|v| v[0].clone());
-        log::debug!("Range: {:?} result: {:#?}", range_str, maybe_range);
+        debug!("Range: {:?} result: {:#?}", range_str, maybe_range);
         maybe_range.ok_or(report!(SpreadSheetDriverError::RangeNotFound(range_str)))
     }
 
@@ -227,13 +227,12 @@ impl SpreadSheetDriver {
         range
             .into_vec()
             .into_iter()
-            // TODO: use .filter_map(|v| v.....
             .filter_map(|row| {
                 let result = T::deserialize(row);
                 match result {
                     Ok(v) => Some(v),
                     Err(err) => {
-                        log::error!(
+                        error!(
                             "Failed to create {:?} from row.\nError: {}",
                             type_name::<T>(),
                             err.to_string_no_bt()

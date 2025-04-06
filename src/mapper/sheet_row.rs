@@ -3,6 +3,7 @@ use error_stack::{Report, ResultExt};
 use serde_json::Value;
 use std::any::type_name;
 use thiserror::Error;
+use tracing::debug;
 
 pub type Result<T> = error_stack::Result<T, ParseError>;
 
@@ -58,7 +59,7 @@ impl SheetRowExt for SheetRow {
         let result = try_unwrap_value(cell, self, column_name);
 
         result.and_then(|v| {
-            log::debug!("Parsing {:?} into {}", v, type_name);
+            debug!("Parsing {:?} into {}", v, type_name);
             let string = v
                 .clone()
                 .as_str()
