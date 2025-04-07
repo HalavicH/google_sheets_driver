@@ -63,16 +63,20 @@ pub trait ErrorStackExt {
 impl<E: 'static> ErrorStackExt for error_stack::Report<E> {
     fn to_string_no_bt(&self) -> String {
         let string = format!("{:?}", self);
-        let split = string
-            .split("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            .collect::<Vec<&str>>();
-        split.first().unwrap().to_string()
+        trim_error_stack_bt(&string)
     }
 
     fn into_error_and_log(self) -> impl std::error::Error + Send + Sync + 'static {
         error!("Can't find users in range: {}", self.to_string_no_bt());
         self.into_error()
     }
+}
+
+pub fn trim_error_stack_bt(string: &String) -> String {
+    let split = string
+        .split("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        .collect::<Vec<&str>>();
+    split.first().unwrap_or(&"No error data").to_string()
 }
 
 pub trait ErrorStackResultExt<T> {
