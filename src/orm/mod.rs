@@ -1,8 +1,7 @@
 use crate::spread_sheet_driver::SharedSpreadSheetDriver;
 use crate::types::{A1CellId, A1Range, Entity, EntityEssentials, SheetA1CellId, SheetA1Range};
-use error_stack::{FutureExt, ResultExt, bail};
+use error_stack::{ResultExt, bail};
 use google_sheets4::api::{AppendValuesResponse, MatchedValueRange};
-use google_sheets4::hyper::body::HttpBody;
 use std::num::NonZero;
 use std::sync::Arc;
 use tracing::{debug, info};
@@ -155,7 +154,7 @@ impl Repository {
         })
     }
 
-    pub async fn delete<E>(&self, entity: &Entity<E>) -> Result<()>
+    pub async fn delete<E>(&self, _entity: &Entity<E>) -> Result<()>
     where
         E: EntityEssentials,
     {
@@ -233,6 +232,7 @@ impl PositionalParsing for MatchedValueRange {
     }
 }
 
+#[allow(non_snake_case)]
 #[cfg(test)]
 mod orm_tests {
     use super::*;

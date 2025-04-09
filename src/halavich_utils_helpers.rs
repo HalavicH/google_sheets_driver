@@ -102,6 +102,7 @@ impl<T, E: 'static> ErrorStackResultExt<T> for error_stack::Result<T, E> {
     }
 }
 
+#[allow(non_snake_case)]
 #[cfg(test)]
 mod error_stack_ext_tests {
     use super::*;
@@ -111,7 +112,6 @@ mod error_stack_ext_tests {
 
     #[derive(Debug, Error, Display)]
     pub enum SomeError {
-        Foo,
         Bar,
     }
 

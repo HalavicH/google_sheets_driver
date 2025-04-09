@@ -10,6 +10,7 @@ impl From<A1CellId> for NumCellId {
     }
 }
 
+#[allow(non_snake_case)]
 #[cfg(test)]
 mod from_a1_cell_id_tests {
     use super::*;
@@ -45,6 +46,7 @@ impl From<NumCellId> for A1CellId {
     }
 }
 
+#[allow(non_snake_case)]
 #[cfg(test)]
 mod from_cell_id_tests {
     use super::*;
@@ -98,6 +100,7 @@ pub fn dec_to_string_as_base26(mut dec_number: u32) -> String {
     result.chars().rev().collect()
 }
 
+#[allow(non_snake_case)]
 #[cfg(test)]
 mod base26_tests {
     use super::*;

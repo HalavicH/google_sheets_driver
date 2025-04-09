@@ -2,7 +2,7 @@ use crate::halavich_utils_helpers::IntoReport;
 use crate::types::cell::conversions::string_to_dec_as_base26;
 use crate::types::cell::num_cell_id::NumCellId;
 use crate::types::letters::Letters;
-use crate::types::{A1Range, A1RangeError, SheetA1Range};
+use crate::types::{A1Range, SheetA1Range};
 use error_stack::{ResultExt, bail};
 use std::cmp::Ordering;
 use std::fmt::Display;
@@ -18,7 +18,7 @@ pub struct SheetA1CellId {
 }
 
 impl SheetA1CellId {
-    pub(crate) fn from_raw<S>(str: S) -> Result<SheetA1CellId>
+    pub fn from_raw<S>(str: S) -> Result<SheetA1CellId>
     where
         S: Display,
     {
@@ -117,10 +117,10 @@ impl A1CellId {
 impl Add for A1CellId {
     type Output = A1CellId;
 
+    /// Add two cell ids together
+    /// Example: A1 + B2 = C3
+    /// Example: A1 + A1 = A2
     fn add(self, other: Self) -> Self::Output {
-        /// Add two cell ids together
-        /// Example: A1 + B2 = C3
-        /// Example: A1 + A1 = A2
         let number = self.row.get() + other.row.get();
         let other_col_as_num = string_to_dec_as_base26(&other.col);
         let letter = self.col + other_col_as_num;
@@ -136,14 +136,14 @@ impl A1CellId {
     /// Convert the cell id to a 1-indexed row index
     /// Example: A1 -> 1
     /// Example: A2 -> 2
-    pub(crate) fn row(&self) -> NonZeroU32 {
+    pub fn row(&self) -> NonZeroU32 {
         self.row
     }
 
     /// Convert the cell id to a 1-indexed column index
     /// Example: A1 -> 1
     /// Example: B1 -> 2
-    pub(crate) fn column(&self) -> NonZeroU32 {
+    pub fn column(&self) -> NonZeroU32 {
         NonZero::new(string_to_dec_as_base26(&self.col))
             .expect("Expected a non-zero cell column number")
     }
@@ -191,34 +191,6 @@ impl A1CellId {
             NonZero::new(number as u32).expect("Expected a non-zero cell row number"),
         )
     }
-
-    fn append_letter(letters: &String, plus: u32) -> String {
-        let mut letters = letters.chars();
-        let mut result = String::new();
-        let mut carry = plus;
-
-        while let Some(letter) = letters.next_back() {
-            let mut letter = letter;
-            let mut value = letter as u32 - 'A' as u32 + carry;
-
-            if value >= 26 {
-                carry = value / 26;
-                value %= 26;
-                letter = (value as u8 + b'A') as char;
-            } else {
-                carry = 0;
-                letter = (letter as u8 + plus as u8) as char;
-            }
-
-            result.push(letter);
-        }
-
-        if carry > 0 {
-            result.push((carry as u8 + b'A') as char);
-        }
-
-        result.chars().rev().collect()
-    }
 }
 
 impl TryFrom<&str> for A1CellId {
@@ -262,6 +234,7 @@ impl PartialOrd for A1CellId {
     }
 }
 
+#[allow(non_snake_case)]
 #[cfg(test)]
 mod a1_cell_id_tests {
     use super::*;

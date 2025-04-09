@@ -1,5 +1,5 @@
 use crate::halavich_utils_helpers::{AMShared, ErrorStackExt};
-use error_stack::{ResultExt, bail, report};
+use error_stack::{ResultExt, report};
 use google_sheets4::api::{
     AppendValuesResponse, BatchGetValuesByDataFilterRequest, BatchGetValuesByDataFilterResponse,
     DataFilter, ValueRange,
@@ -171,46 +171,6 @@ impl SpreadSheetDriver {
             .await
             .map_err(|e| report!(SpreadSheetDriverError::ApiError(e.to_string())))
             .map(|t| t.1)
-    }
-
-    /// Returns row number in spreadsheet by row index of resulting data
-    pub async fn try_get_row_num_by_row_index(
-        data: &MatchedValueRange,
-        row_index: usize,
-    ) -> SsdResult<u32> {
-        let Some(filters) = data.data_filters.as_ref() else {
-            bail!(SpreadSheetDriverError::InvalidArgument(
-                "MatchedValueRange doesn't have data filters".to_string()
-            ));
-        };
-
-        if filters.len() != 1 {
-            bail!(SpreadSheetDriverError::InvalidArgument(
-                "MatchedValueRange doesn't have exactly one filter".to_string()
-            ));
-        };
-
-        let filter = filters
-            .first()
-            .expect("Expected to have exactly one filter");
-
-        let Some(range) = filter.a1_range.as_ref() else {
-            bail!(SpreadSheetDriverError::InvalidArgument(
-                "Data filter doesn't have A1 range".to_string()
-            ));
-        };
-
-        todo!("Parse range into parts and calculate row index");
-        // let maybe_range_start  = range.split(":").collect::<Vec<&str>>()
-        //     .first()
-        // .and_then(|&part| if part.contains("!") {
-        //     part.split("!").collect::<Vec<&str>>().get(1).expect("Expected to have 2 parts after split by '!'")
-        // } else {
-        //     part
-        // }
-        // )
-        // .and_then(|part| parse::<>);
-        Ok(5)
     }
 
     /// Typed API ///

@@ -4,7 +4,7 @@ mod letters;
 mod range;
 mod typed_options;
 
-pub use cell::a1_cell_id::*;
+pub use cell::a1_cell_id::{A1CellId, Result, SheetA1CellId};
 pub use cell::num_cell_id::*;
 pub use entity::Entity;
 pub use entity::*;

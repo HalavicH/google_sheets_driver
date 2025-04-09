@@ -25,6 +25,7 @@ impl NumRange {
     }
 }
 
+#[allow(non_snake_case)]
 #[cfg(test)]
 mod range_tests {
     use super::*;

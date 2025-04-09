@@ -99,6 +99,7 @@ impl Sub<&Letters> for &Letters {
     }
 }
 
+#[allow(non_snake_case)]
 #[cfg(test)]
 mod letters_tests {
     use super::*;
@@ -162,6 +163,6 @@ mod letters_tests {
     #[should_panic(expected = "Expected non-empty letters")]
     fn letters__sub__with_underflow__panics() {
         let letters = Letters::new("A".to_string());
-        let result = letters - 1;
+        let _ = letters - 1;
     }
 }

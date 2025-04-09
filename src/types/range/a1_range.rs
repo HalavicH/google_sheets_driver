@@ -1,4 +1,3 @@
-use crate::types::cell::a1_cell_id::A1CellIdError;
 use crate::types::letters::Letters;
 use crate::types::{A1CellId, SheetA1CellId};
 use error_stack::{ResultExt, bail};
@@ -23,7 +22,7 @@ pub struct A1Range {
 }
 
 impl A1Range {
-    pub(crate) fn iter(&self) -> A1RangeIterator {
+    pub fn iter(&self) -> A1RangeIterator {
         A1RangeIterator {
             range: self.clone(),
             current: self.start.clone(),
@@ -59,6 +58,7 @@ impl Iterator for A1RangeIterator {
     }
 }
 
+#[allow(non_snake_case)]
 #[cfg(test)]
 mod range_iterator_tests {
     use super::*;
@@ -110,7 +110,7 @@ mod range_iterator_tests {
 
 impl A1Range {
     /// Offset the range to the A1 as `from`
-    pub(crate) fn into_zero_base_range(self) -> A1Range {
+    pub fn into_zero_base_range(self) -> A1Range {
         let delta_numbers = 1 - self.start.row.get() as i32;
         let minus_letters = -(&self.start.col - &Letters::new("A".to_string()));
 
@@ -152,7 +152,7 @@ impl A1Range {
         S: Display,
     {
         let string = value.to_string();
-        let mut parts = string.split(':').collect::<Vec<_>>();
+        let parts = string.split(':').collect::<Vec<_>>();
 
         if parts.len() != 2 {
             bail!(A1RangeError::InvalidRangeFormat(value.to_string()));
@@ -170,6 +170,7 @@ impl A1Range {
     }
 }
 
+#[allow(non_snake_case)]
 #[cfg(test)]
 mod range_tests {
     use super::*;
@@ -228,7 +229,7 @@ impl SheetA1Range {
         S: Display,
     {
         let string = value.to_string();
-        let mut parts = string.split('!').collect::<Vec<_>>();
+        let parts = string.split('!').collect::<Vec<_>>();
 
         if parts.len() != 2 {
             bail!(A1RangeError::InvalidRangeFormat(value.to_string()));
