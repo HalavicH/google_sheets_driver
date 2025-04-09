@@ -1,7 +1,9 @@
+use crate::halavich_utils_helpers::IntoReport;
 use crate::types::cell::conversions::string_to_dec_as_base26;
 use crate::types::cell::num_cell_id::NumCellId;
 use crate::types::letters::Letters;
-use crate::types::{A1Range, SheetA1Range};
+use crate::types::{A1Range, A1RangeError, SheetA1Range};
+use error_stack::{ResultExt, bail};
 use std::cmp::Ordering;
 use std::fmt::Display;
 use std::num::{NonZero, NonZeroU32};
@@ -13,6 +15,23 @@ pub type Result<T> = error_stack::Result<T, A1CellIdError>;
 pub struct SheetA1CellId {
     pub sheet_name: String,
     pub cell: A1CellId,
+}
+
+impl SheetA1CellId {
+    pub(crate) fn from_raw<S>(str: S) -> Result<SheetA1CellId>
+    where
+        S: Display,
+    {
+        let string = str.to_string();
+        let parts: Vec<&str> = string.split(':').collect();
+        if parts.len() != 2 {
+            bail!(A1CellIdError::InvalidCellFormat(str.to_string()))
+        };
+
+        let sheet_name = parts[0].to_owned();
+        let cell = A1CellId::from_raw(parts[1])?;
+        Ok(SheetA1CellId { sheet_name, cell })
+    }
 }
 
 impl SheetA1CellId {
@@ -59,6 +78,40 @@ pub enum A1CellIdError {
 pub struct A1CellId {
     pub col: Letters,
     pub row: NonZeroU32,
+}
+
+impl A1CellId {
+    /// Parses cell from raw "A1" string into A1CellId
+    pub fn from_raw<S>(value: S) -> Result<Self>
+    where
+        S: Display,
+    {
+        let string = value.to_string();
+        let mut col = String::new();
+        let mut row = String::new();
+
+        for c in string.chars() {
+            if c.is_alphabetic() {
+                col.push(c);
+            } else if c.is_numeric() {
+                row.push(c);
+            } else {
+                bail!(A1CellIdError::InvalidCellFormat(string));
+            }
+        }
+
+        if col.is_empty() || row.is_empty() {
+            bail!(A1CellIdError::InvalidCellFormat(string));
+        }
+
+        let col = Letters::new(col);
+        let row = row
+            .parse::<u32>()
+            .into_report()
+            .change_context(A1CellIdError::InvalidCellFormat(string))?;
+
+        Ok(A1CellId::from_primitives(col, row))
+    }
 }
 
 impl Add for A1CellId {
@@ -256,6 +309,24 @@ mod a1_cell_id_tests {
             let result = cell_id.delta(1, 1);
             assert_eq!(result.col.deref(), "AA");
             assert_eq!(result.row.get(), 27);
+        }
+
+        #[cfg(test)]
+        mod from_raw_tests {
+            use super::*;
+            #[test]
+            fn cell_id__from_raw_ok() {
+                let result = A1CellId::from_raw("A1");
+                assert!(result.is_ok());
+                let result = A1CellId::from_raw("AA11");
+                assert!(result.is_ok());
+            }
+
+            #[test]
+            fn cell_id__from_raw_err() {
+                let result = A1CellId::from_raw("Z");
+                assert!(result.is_err());
+            }
         }
     }
     #[cfg(test)]

@@ -36,7 +36,7 @@ pub trait SheetRowSerde {
     where
         Self: Sized;
 
-    fn serialize(self) -> Result<SheetRow>;
+    fn serialize(&self) -> Result<SheetRow>;
 }
 
 pub trait SheetRowExt {

@@ -14,6 +14,7 @@ use std::any::type_name;
 use std::fmt::{Debug, Formatter};
 
 use crate::mapper::sheet_row::SheetRowSerde;
+use crate::types::{InputMode, MajorDimension};
 pub use google_sheets4::api::MatchedValueRange;
 use tracing::{debug, error};
 
@@ -123,11 +124,7 @@ impl SpreadSheetDriver {
             .unwrap_or_else(|e| panic!("Expected to write to spreadsheet: {:#?}", e))
     }
 
-    pub async fn try_write_range(
-        &self,
-        range_str: &str,
-        data: Vec<Vec<serde_json::Value>>,
-    ) -> SsdResult<()> {
+    pub async fn try_write_range(&self, range_str: &str, data: Vec<Vec<Value>>) -> SsdResult<()> {
         let _ = self
             .client_ref()
             .spreadsheets()
@@ -140,7 +137,7 @@ impl SpreadSheetDriver {
                 self.document_id.as_str(),
                 range_str,
             )
-            .value_input_option("RAW")
+            .value_input_option(InputMode::UserEntered.as_str())
             .doit()
             .await
             .map_err(|e| {
@@ -155,24 +152,25 @@ impl SpreadSheetDriver {
     pub async fn try_append_row<R>(
         &self,
         range: R,
-        row: Vec<serde_json::Value>,
-    ) -> SsdResult<(Response<Body>, AppendValuesResponse)>
+        row: Vec<Value>,
+    ) -> SsdResult<AppendValuesResponse>
     where
         R: Into<String>,
     {
         let range = range.into();
         let req = ValueRange {
-            major_dimension: Some("ROWS".to_string()),
+            major_dimension: Some(MajorDimension::Rows.to_string()),
             range: Some(range.clone()),
             values: Some(vec![row]),
         };
         self.client_ref()
             .spreadsheets()
             .values_append(req, self.document_id.as_str(), range.as_str())
-            .value_input_option("RAW")
+            .value_input_option(InputMode::UserEntered.as_str())
             .doit()
             .await
             .map_err(|e| report!(SpreadSheetDriverError::ApiError(e.to_string())))
+            .map(|t| t.1)
     }
 
     /// Returns row number in spreadsheet by row index of resulting data

@@ -1,6 +1,7 @@
-use crate::types::A1CellId;
 use crate::types::cell::a1_cell_id::A1CellIdError;
 use crate::types::letters::Letters;
+use crate::types::{A1CellId, SheetA1CellId};
+use error_stack::{ResultExt, bail};
 use std::fmt::Display;
 use std::num::NonZero;
 use thiserror::Error;
@@ -9,11 +10,11 @@ use thiserror::Error;
 pub enum A1RangeError {
     #[error("Invalid range format: {0}")]
     InvalidRangeFormat(String),
-    #[error("Can't parse cell: {0}")]
-    CellParsingError(#[from] A1CellIdError),
+    #[error("Can't parse cell")]
+    CellParsingError,
 }
 
-pub type Result<T> = std::result::Result<T, A1RangeError>;
+pub type Result<T> = error_stack::Result<T, A1RangeError>;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct A1Range {
@@ -129,8 +130,14 @@ impl A1Range {
     }
 
     pub fn from_str(from: &str, to: &str) -> Result<Self> {
-        let start = from.try_into().map_err(Into::<A1RangeError>::into)?;
-        let end = to.try_into().map_err(Into::<A1RangeError>::into)?;
+        let start = A1CellId::from_raw(from)
+            .change_context(A1RangeError::CellParsingError)
+            .attach_printable_lazy(|| format!("Input cell (from): {}", from))?;
+
+        let end = A1CellId::from_raw(to)
+            .change_context(A1RangeError::CellParsingError)
+            .attach_printable_lazy(|| format!("Input cell (to): {}", to))?;
+
         Ok(Self::new(start, end))
     }
 
@@ -139,21 +146,25 @@ impl A1Range {
     }
 }
 
-impl TryFrom<&str> for A1Range {
-    type Error = A1RangeError;
+impl A1Range {
+    fn from_raw<S>(value: S) -> Result<Self>
+    where
+        S: Display,
+    {
+        let string = value.to_string();
+        let mut parts = string.split(':').collect::<Vec<_>>();
 
-    fn try_from(value: &str) -> std::result::Result<Self, Self::Error> {
-        let mut parts = value.split(':');
+        if parts.len() != 2 {
+            bail!(A1RangeError::InvalidRangeFormat(value.to_string()));
+        }
 
-        let from = parts
-            .next()
-            .ok_or_else(|| A1RangeError::InvalidRangeFormat(value.to_string()))?
-            .try_into()?;
+        let from = A1CellId::from_raw(parts[0])
+            .change_context(A1RangeError::CellParsingError)
+            .attach_printable_lazy(|| format!("Input range str: {}", string))?;
 
-        let to = parts
-            .next()
-            .ok_or_else(|| A1RangeError::InvalidRangeFormat(value.to_string()))?
-            .try_into()?;
+        let to = A1CellId::from_raw(parts[1])
+            .change_context(A1RangeError::CellParsingError)
+            .attach_printable_lazy(|| format!("Input range str: {}", string))?;
 
         Ok(Self::new(from, to))
     }
@@ -173,10 +184,7 @@ mod range_tests {
     #[test]
     fn parse_range__on_invalid_range__err() {
         let range = A1Range::from_str("A1", "C").unwrap_err();
-        assert_eq!(
-            range,
-            A1RangeError::CellParsingError(A1CellIdError::InvalidCellFormat("C".to_string()))
-        );
+        assert_eq!(*range.current_context(), A1RangeError::CellParsingError);
     }
 
     #[test]
@@ -209,6 +217,32 @@ pub struct SheetA1Range {
 }
 
 impl SheetA1Range {
+    pub(crate) fn start(&self) -> SheetA1CellId {
+        SheetA1CellId::new(self.sheet.clone(), self.range.start.clone())
+    }
+}
+
+impl SheetA1Range {
+    pub fn from_raw<S>(value: S) -> Result<Self>
+    where
+        S: Display,
+    {
+        let string = value.to_string();
+        let mut parts = string.split('!').collect::<Vec<_>>();
+
+        if parts.len() != 2 {
+            bail!(A1RangeError::InvalidRangeFormat(value.to_string()));
+        }
+
+        // Remove leading and traling ' from the page
+        let page = parts[0].trim_matches('\'');
+        let range = A1Range::from_raw(parts[1])?;
+
+        Ok(Self::new(page.to_string(), range))
+    }
+}
+
+impl SheetA1Range {
     pub fn new<N>(page: N, range: A1Range) -> Self
     where
         N: Display,
@@ -220,7 +254,7 @@ impl SheetA1Range {
     }
 
     pub fn from_str(page: &str, range: &str) -> Result<Self> {
-        Ok(Self::new(page.to_string(), range.try_into()?))
+        Ok(Self::new(page.to_string(), A1Range::from_raw(range)?))
     }
 }
 
@@ -231,27 +265,5 @@ impl Display for SheetA1Range {
             "{}",
             format!("{}!{}", self.sheet, self.range.to_string())
         )
-    }
-}
-
-impl TryFrom<&str> for SheetA1Range {
-    type Error = A1RangeError;
-
-    fn try_from(value: &str) -> std::result::Result<Self, Self::Error> {
-        let mut parts = value.split('!');
-
-        let page = parts
-            .next()
-            .ok_or_else(|| A1RangeError::InvalidRangeFormat(value.to_string()))?;
-
-        // Remove leading and traling ' from the page
-        let page = page.trim_matches('\'');
-
-        let range = parts
-            .next()
-            .ok_or_else(|| A1RangeError::InvalidRangeFormat(value.to_string()))?
-            .try_into()?;
-
-        Ok(Self::new(page.to_string(), range))
     }
 }

@@ -1,16 +1,26 @@
 use crate::spread_sheet_driver::SharedSpreadSheetDriver;
 use crate::types::{A1CellId, A1Range, Entity, EntityEssentials, SheetA1CellId, SheetA1Range};
 use error_stack::{FutureExt, ResultExt, bail};
-use google_sheets4::api::MatchedValueRange;
+use google_sheets4::api::{AppendValuesResponse, MatchedValueRange};
 use google_sheets4::hyper::body::HttpBody;
+use std::num::NonZero;
 use std::sync::Arc;
 use tracing::{debug, info};
 
-#[derive(Debug, thiserror::Error, derive_more::Display)]
+#[derive(Debug, thiserror::Error)]
 pub enum RepositoryError {
+    #[error["Spreadsheet Driver error"]]
     DriverError,
+    #[error["Invalid argument: {0}"]]
     InvalidArgument(String),
+    #[error["Parsing error"]]
     ParsingError,
+    #[error["Unexpected response: {what}. {input}.\nResponse: {response:?}"]]
+    UnexpectedResponse {
+        what: &'static str,
+        input: String,
+        response: Box<AppendValuesResponse>,
+    },
 }
 
 pub type Result<T> = error_stack::Result<T, RepositoryError>;
@@ -40,10 +50,13 @@ impl Repository {
         matched_value_range.parse_positionally()
     }
 
+    // TODO: Fix possible bug with `rows: 1` producing range of 2 rows because of 1-based indexing
     fn convert_into_range(start: &SheetA1CellId, rows: u32, width: u32) -> SheetA1Range {
+        // -2 for 1-based offset twice (first time here, second time when calculating end_cell
+        let compensation = 2;
         let offset = A1CellId::new(
-            start.cell.col.clone() + width - 1,
-            start.cell.row.saturating_add(rows),
+            start.cell.col.clone() + width - compensation,
+            NonZero::new(rows).expect("Expected to have rows to be at least 1"),
         );
         let end_cell = start.cell.clone() + offset;
         let range = SheetA1Range::new(
@@ -105,7 +118,7 @@ impl Repository {
             .serialize()
             .change_context(RepositoryError::DriverError)?;
 
-        let tup = self
+        let avr = self
             .driver
             .lock()
             .await
@@ -115,10 +128,31 @@ impl Repository {
 
         info!(
             "For input range: {:?}, data: {:?}\nGot response: {:#?}",
-            range, entity_data, tup
+            range, entity_data, avr
         );
 
-        todo!("Figure out how to locate exact position of the entity")
+        let Some(updates) = &avr.updates else {
+            bail!(RepositoryError::UnexpectedResponse {
+                what: "AppendValuesResponse doesn't have 'updates'",
+                input: format!("Input range: {:?}, data: {:?}", range, entity_data),
+                response: Box::new(avr)
+            });
+        };
+
+        let Some(updated_range) = &updates.updated_range else {
+            bail!(RepositoryError::UnexpectedResponse {
+                what: "UpdateValuesResponse doesn't have 'updated_range'",
+                input: format!("Input range: {:?}, data: {:?}", range, updates),
+                response: Box::new(avr)
+            });
+        };
+
+        let position =
+            SheetA1Range::from_raw(updated_range).change_context(RepositoryError::ParsingError)?;
+        Ok(Entity {
+            position: position.start(),
+            data: entity_data,
+        })
     }
 
     pub async fn delete<E>(&self, entity: &Entity<E>) -> Result<()>
@@ -192,7 +226,7 @@ impl PositionalParsing for MatchedValueRange {
             ));
         };
 
-        let sr = SheetA1Range::try_from(range.as_str())
+        let sr = SheetA1Range::from_raw(range.as_str())
             .map_err(|e| RepositoryError::InvalidArgument(format!("{e}")))?;
 
         Ok(sr)
@@ -225,9 +259,9 @@ mod orm_tests {
                 name: row.parse_cell(1, "name")?,
             })
         }
-        fn serialize(self) -> sheet_row::Result<SheetRow> {
+        fn serialize(&self) -> sheet_row::Result<SheetRow> {
             Ok(vec![
-                Value::String(self.name),
+                Value::String(self.name.clone()),
                 Value::String(self.id.to_string()),
             ])
         }
