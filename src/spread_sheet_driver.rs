@@ -1,7 +1,8 @@
 use crate::halavich_utils_helpers::{AMShared, ErrorStackExt};
 use error_stack::{ResultExt, bail, report};
 use google_sheets4::api::{
-    BatchGetValuesByDataFilterRequest, BatchGetValuesByDataFilterResponse, DataFilter, ValueRange,
+    AppendValuesResponse, BatchGetValuesByDataFilterRequest, BatchGetValuesByDataFilterResponse,
+    DataFilter, ValueRange,
 };
 use google_sheets4::hyper::client::HttpConnector;
 use google_sheets4::hyper::{Body, Response};
@@ -151,7 +152,11 @@ impl SpreadSheetDriver {
     }
 
     /// Append API
-    pub async fn try_append_row<R>(&self, range: R, row: Vec<serde_json::Value>) -> SsdResult<()>
+    pub async fn try_append_row<R>(
+        &self,
+        range: R,
+        row: Vec<serde_json::Value>,
+    ) -> SsdResult<(Response<Body>, AppendValuesResponse)>
     where
         R: Into<String>,
     {
@@ -168,7 +173,6 @@ impl SpreadSheetDriver {
             .doit()
             .await
             .map_err(|e| report!(SpreadSheetDriverError::ApiError(e.to_string())))
-            .map(|_| ())
     }
 
     /// Returns row number in spreadsheet by row index of resulting data

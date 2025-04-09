@@ -209,8 +209,14 @@ pub struct SheetA1Range {
 }
 
 impl SheetA1Range {
-    pub fn new(page: String, range: A1Range) -> Self {
-        Self { sheet: page, range }
+    pub fn new<N>(page: N, range: A1Range) -> Self
+    where
+        N: Display,
+    {
+        Self {
+            sheet: page.to_string(),
+            range,
+        }
     }
 
     pub fn from_str(page: &str, range: &str) -> Result<Self> {

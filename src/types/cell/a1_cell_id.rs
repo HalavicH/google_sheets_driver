@@ -27,6 +27,16 @@ impl SheetA1CellId {
         }
     }
 
+    pub fn new<N>(sheet_name: N, cell: A1CellId) -> Self
+    where
+        N: Display,
+    {
+        SheetA1CellId {
+            sheet_name: sheet_name.to_string(),
+            cell,
+        }
+    }
+
     pub fn into_range<C>(self, end_col: C, end_row: u32) -> SheetA1Range
     where
         C: Display,

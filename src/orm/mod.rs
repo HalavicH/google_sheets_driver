@@ -4,7 +4,7 @@ use error_stack::{FutureExt, ResultExt, bail};
 use google_sheets4::api::MatchedValueRange;
 use google_sheets4::hyper::body::HttpBody;
 use std::sync::Arc;
-use tracing::debug;
+use tracing::{debug, info};
 
 #[derive(Debug, thiserror::Error, derive_more::Display)]
 pub enum RepositoryError {
@@ -28,15 +28,7 @@ impl Repository {
     where
         E: EntityEssentials,
     {
-        let offset = A1CellId::new(
-            start.cell.col.clone() + E::entity_width() - 1,
-            start.cell.row.saturating_add(rows),
-        );
-        let end_cell = start.cell.clone() + offset;
-        let range = SheetA1Range::new(
-            start.sheet_name.to_string(),
-            A1Range::new(start.cell.clone(), end_cell),
-        );
+        let range = Self::convert_into_range(start, rows, E::entity_width());
         let matched_value_range = self
             .driver
             .lock()
@@ -46,6 +38,19 @@ impl Repository {
             .change_context(RepositoryError::DriverError)?;
 
         matched_value_range.parse_positionally()
+    }
+
+    fn convert_into_range(start: &SheetA1CellId, rows: u32, width: u32) -> SheetA1Range {
+        let offset = A1CellId::new(
+            start.cell.col.clone() + width - 1,
+            start.cell.row.saturating_add(rows),
+        );
+        let end_cell = start.cell.clone() + offset;
+        let range = SheetA1Range::new(
+            start.sheet_name.to_string(),
+            A1Range::new(start.cell.clone(), end_cell),
+        );
+        range
     }
 
     pub async fn find_by_position<E>(&self, start: SheetA1CellId) -> Result<Option<Entity<E>>>
@@ -83,11 +88,37 @@ impl Repository {
         Ok(())
     }
 
-    pub async fn insert<E>(&self, entity_data: &E) -> Result<Entity<E>>
+    /// Inserts entity into specified table by appending it to the end of the range.
+    pub async fn insert<E>(
+        &self,
+        start: SheetA1CellId,
+        rows: u32,
+        entity_data: E,
+    ) -> Result<Entity<E>>
     where
         E: EntityEssentials,
     {
-        todo!()
+        let range = Self::convert_into_range(&start, rows, E::entity_width());
+
+        let data = entity_data
+            .clone()
+            .serialize()
+            .change_context(RepositoryError::DriverError)?;
+
+        let tup = self
+            .driver
+            .lock()
+            .await
+            .try_append_row(range.to_string().as_str(), data)
+            .await
+            .change_context(RepositoryError::DriverError)?;
+
+        info!(
+            "For input range: {:?}, data: {:?}\nGot response: {:#?}",
+            range, entity_data, tup
+        );
+
+        todo!("Figure out how to locate exact position of the entity")
     }
 
     pub async fn delete<E>(&self, entity: &Entity<E>) -> Result<()>
@@ -129,7 +160,7 @@ impl PositionalParsing for MatchedValueRange {
                             &start.col,
                             start.row.get() + i as u32,
                         ),
-                        data,
+                        data: data,
                     })
                     .change_context(RepositoryError::ParsingError);
                 result

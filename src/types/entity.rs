@@ -9,8 +9,23 @@ pub struct Entity<E>
 where
     E: EntityEssentials,
 {
-    pub position: SheetA1CellId,
-    pub data: E,
+    pub(crate) position: SheetA1CellId,
+    pub(crate) data: E,
+}
+
+impl<E> Entity<E>
+where
+    E: EntityEssentials,
+{
+    pub fn data(&self) -> &E {
+        &self.data
+    }
+    pub fn data_mut(&mut self) -> &mut E {
+        &mut self.data
+    }
+    pub fn position(&self) -> &SheetA1CellId {
+        &self.position
+    }
 }
 
 /// Syntactic sugar to ease work with the wrapped data
