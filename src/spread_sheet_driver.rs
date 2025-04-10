@@ -5,7 +5,7 @@ use google_sheets4::api::{
     DataFilter, ValueRange,
 };
 use google_sheets4::hyper::client::HttpConnector;
-use google_sheets4::hyper::{Body, Response};
+use google_sheets4::hyper::{Body, Client, Response};
 use google_sheets4::hyper_rustls::HttpsConnector;
 use google_sheets4::oauth2::ServiceAccountAuthenticator;
 use google_sheets4::{Error, Sheets, hyper, hyper_rustls, oauth2};
@@ -16,6 +16,7 @@ use std::fmt::{Debug, Formatter};
 use crate::mapper::sheet_row::SheetRowSerde;
 use crate::types::{InputMode, MajorDimension};
 pub use google_sheets4::api::MatchedValueRange;
+use google_sheets4::oauth2::authenticator::Authenticator;
 use tracing::{debug, error};
 
 #[derive(Debug, thiserror::Error)]
@@ -45,9 +46,12 @@ pub type SheetsClientConnector = Sheets<HttpsConnector<HttpConnector>>;
 impl SpreadSheetDriver {
     /// Panics if secret is not provided or is invalid
     pub async fn new(document_id: String, path_to_secret_json: &str) -> Self {
+        let (auth, http_client) = create_http_client_from_secret_json(path_to_secret_json).await;
+
+        let sheet_client = Sheets::new(http_client, auth);
         Self {
             document_id,
-            sheets_client: create_sheet_client(path_to_secret_json).await,
+            sheets_client: SheetsClient(sheet_client),
         }
     }
 
@@ -63,7 +67,12 @@ impl Debug for SheetsClient {
     }
 }
 
-pub async fn create_sheet_client(path: &str) -> SheetsClient {
+pub async fn create_http_client_from_secret_json(
+    path: &str,
+) -> (
+    Authenticator<HttpsConnector<HttpConnector>>,
+    Client<HttpsConnector<HttpConnector>>,
+) {
     // Load the service account key from a file
     let key = oauth2::read_service_account_key(path)
         .await
@@ -86,9 +95,7 @@ pub async fn create_sheet_client(path: &str) -> SheetsClient {
 
     // Create a new hyper client
     let http_client = hyper::Client::builder().build(connector);
-
-    let sheet_client = Sheets::new(http_client, auth);
-    SheetsClient(sheet_client)
+    (auth, http_client)
 }
 
 // TODO: Add API which deserialize `Vec<Vec<Value>>` into structs
