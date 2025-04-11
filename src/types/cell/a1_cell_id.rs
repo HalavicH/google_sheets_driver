@@ -1,4 +1,3 @@
-use crate::halavich_utils_helpers::IntoReport;
 use crate::types::cell::conversions::string_to_dec_as_base26;
 use crate::types::cell::num_cell_id::NumCellId;
 use crate::types::letters::Letters;
@@ -8,6 +7,7 @@ use std::cmp::Ordering;
 use std::fmt::Display;
 use std::num::{NonZero, NonZeroU32};
 use std::ops::{Add, Deref};
+use huh::IntoReport;
 
 pub type Result<T> = error_stack::Result<T, A1CellIdError>;
 

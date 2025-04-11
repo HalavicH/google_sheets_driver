@@ -413,6 +413,7 @@ dependencies = [
  "derive_more",
  "error-stack",
  "google-sheets4",
+ "huh",
  "serde",
  "serde_json",
  "thiserror",
@@ -490,6 +491,18 @@ name = "httpdate"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
+
+[[package]]
+name = "huh"
+version = "0.1.0"
+dependencies = [
+ "derive_more",
+ "error-stack",
+ "serde",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "hyper"
@@ -1277,9 +1290,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.44.1"
+version = "1.44.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f382da615b842244d4b8738c82ed1275e6c5dd90c459a30941cd07080b06c91a"
+checksum = "e6b88822cbe49de4185e3a4cbf8321dd487cf5fe0c5c65695fef6346371e9c48"
 dependencies = [
  "backtrace",
  "bytes",
