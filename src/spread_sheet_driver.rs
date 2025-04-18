@@ -13,7 +13,7 @@ use std::any::type_name;
 use std::fmt::{Debug, Formatter};
 
 use crate::mapper::sheet_row::SheetRowSerde;
-use crate::types::{InputMode, MajorDimension};
+use crate::types::{InputMode, MajorDimension, ValueRenderOption};
 pub use google_sheets4::api::MatchedValueRange;
 use google_sheets4::oauth2::authenticator::Authenticator;
 use huh::{AMShared, ErrorStackExt};
@@ -242,8 +242,8 @@ pub async fn get_data_as_rows(
             grid_range: None,
         }]),
         date_time_render_option: None,
-        major_dimension: Some("ROWS".to_string()),
-        value_render_option: None,
+        major_dimension: Some(MajorDimension::Rows.to_string()),
+        value_render_option: Some(ValueRenderOption::UnformattedValue.to_string()),
     };
 
     let result = client

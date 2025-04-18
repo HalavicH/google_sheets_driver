@@ -28,9 +28,19 @@ pub trait SheetRawCellSerde {
         Self: Sized;
 }
 
+// TODO: Implement for all standard primitives
 impl SheetRawCellSerde for i32 {
     fn deserialize(cell: SheetRawCell) -> CellSerdeResult<Self> {
         cell.parse::<i32>()
+            .map_err(Report::new)
+            .change_context(CellParsingError)
+            .attach_printable_lazy(|| format!("Source data: {cell:?}"))
+    }
+}
+
+impl SheetRawCellSerde for f32 {
+    fn deserialize(cell: SheetRawCell) -> CellSerdeResult<Self> {
+        cell.parse::<f32>()
             .map_err(Report::new)
             .change_context(CellParsingError)
             .attach_printable_lazy(|| format!("Source data: {cell:?}"))

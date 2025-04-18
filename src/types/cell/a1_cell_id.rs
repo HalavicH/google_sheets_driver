@@ -3,11 +3,11 @@ use crate::types::cell::num_cell_id::NumCellId;
 use crate::types::letters::Letters;
 use crate::types::{A1Range, SheetA1Range};
 use error_stack::{ResultExt, bail};
+use huh::IntoReport;
 use std::cmp::Ordering;
 use std::fmt::Display;
 use std::num::{NonZero, NonZeroU32};
 use std::ops::{Add, Deref};
-use huh::IntoReport;
 
 pub type Result<T> = error_stack::Result<T, A1CellIdError>;
 

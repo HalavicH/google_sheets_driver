@@ -60,11 +60,7 @@ impl SheetRowExt for SheetRow {
 
         result.and_then(|v| {
             debug!("Parsing {:?} into {}", v, type_name);
-            let string = v
-                .clone()
-                .as_str()
-                .ok_or_else(|| ParseError::JsonValueToStringError(v.clone()))?
-                .to_owned();
+            let string = stringify_json_value(v);
 
             SheetRawCellSerde::deserialize(string.clone().into()).change_context_lazy(|| {
                 ParseError::CellDeserializationError {
@@ -86,4 +82,12 @@ fn try_unwrap_value<'a>(
         Report::new(ParseError::FieldIsMissing(field_name))
             .attach_printable(format!("Input row: {row:?}"))
     })
+}
+
+fn stringify_json_value(value: &Value) -> String {
+    match value {
+        Value::String(s) => s.clone(),
+        Value::Array(_) => panic!("Array is not supported by this crappy implementation"),
+        _ => value.to_string(),
+    }
 }
