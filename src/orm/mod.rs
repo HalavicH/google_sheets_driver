@@ -37,7 +37,7 @@ impl Repository {
     where
         E: EntityEssentials,
     {
-        let range = Self::convert_into_range(start, rows, E::entity_width());
+        let range = convert_into_range(start, rows, E::entity_width());
         let matched_value_range = self
             .driver
             .lock()
@@ -47,22 +47,6 @@ impl Repository {
             .change_context(RepositoryError::DriverError)?;
 
         matched_value_range.parse_positionally()
-    }
-
-    // TODO: Fix possible bug with `rows: 1` producing range of 2 rows because of 1-based indexing
-    fn convert_into_range(start: &SheetA1CellId, rows: u32, width: u32) -> SheetA1Range {
-        // -2 for 1-based offset twice (first time here, second time when calculating end_cell
-        let compensation = 2;
-        let offset = A1CellId::new(
-            start.cell.col.clone() + width - compensation,
-            NonZero::new(rows).expect("Expected to have rows to be at least 1"),
-        );
-        let end_cell = start.cell.clone() + offset;
-        let range = SheetA1Range::new(
-            start.sheet_name.to_string(),
-            A1Range::new(start.cell.clone(), end_cell),
-        );
-        range
     }
 
     pub async fn find_by_position<E>(&self, start: SheetA1CellId) -> Result<Option<Entity<E>>>
@@ -110,7 +94,7 @@ impl Repository {
     where
         E: EntityEssentials,
     {
-        let range = Self::convert_into_range(&start, rows, E::entity_width());
+        let range = convert_into_range(&start, rows, E::entity_width());
 
         let data = entity_data
             .clone()
@@ -342,4 +326,20 @@ mod orm_tests {
             assert_eq!(actual, expected)
         }
     }
+}
+
+// TODO: Fix possible bug with `rows: 1` producing range of 2 rows because of 1-based indexing
+pub fn convert_into_range(start: &SheetA1CellId, rows: u32, width: u32) -> SheetA1Range {
+    // -2 for 1-based offset twice (first time here, second time when calculating end_cell
+    let compensation = 2;
+    let offset = A1CellId::new(
+        start.cell.col.clone() + width - compensation,
+        NonZero::new(rows).expect("Expected to have rows to be at least 1"),
+    );
+    let end_cell = start.cell.clone() + offset;
+    let range = SheetA1Range::new(
+        start.sheet_name.to_string(),
+        A1Range::new(start.cell.clone(), end_cell),
+    );
+    range
 }

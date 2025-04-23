@@ -1,16 +1,25 @@
 /////////////////////////// Letters in A1 notation ///////////////////////////
 
 use crate::types::cell::conversions::{dec_to_string_as_base26, string_to_dec_as_base26};
-use derive_more::Deref;
+use derive_more::{Deref, Display};
+use error_stack::{FutureExt, Report, bail};
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use std::ops::{Add, Sub};
+use thiserror::Error;
+
+#[derive(Debug, Display, Error)]
+pub enum LettersError {
+    NonAlphanumeric(String),
+    EmptyString,
+}
 
 /// Encapsulates the letters of the alphabet to use it for the cell id
 #[derive(Debug, Eq, PartialEq, Hash, Clone, Deref)]
 pub struct Letters(String);
 
 impl Letters {
+    /// Panics
     pub fn new(value: String) -> Self {
         assert!(!value.is_empty(), "Expected non-empty letters");
         assert!(
@@ -27,9 +36,22 @@ impl Display for Letters {
         f.write_str(&self.0)
     }
 }
-impl From<&str> for Letters {
-    fn from(value: &str) -> Self {
-        Self::new(value.to_string())
+
+impl TryFrom<String> for Letters {
+    type Error = Report<LettersError>;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.is_empty() {
+            bail!(LettersError::EmptyString)
+        }
+
+        if !value.chars().all(char::is_alphabetic) {
+            let text = format!(
+                "String value: {} must contain only alphabetic characters",
+                value
+            );
+            return Err(Report::new(LettersError::NonAlphanumeric(value)).attach_printable(text));
+        }
+        Ok(Self::new(value.to_uppercase()))
     }
 }
 
