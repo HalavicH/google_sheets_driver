@@ -15,7 +15,8 @@ error-stack = "0.5.0"
 thiserror = "2.0.12"
 derive_more = { version = "2.0.1" , features = ["display", "deref", "from", "from_str"]}
 
-serde = "1.0.219"
 serde_json = "1.0.140"
 
-huh = {path = "../huh"}
+### Own libraries ###
+#huh = {path = "../huh"}
+huh = { git = "https://github.com/halavich/huh.git", branch = "master" }
