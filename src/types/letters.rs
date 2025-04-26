@@ -2,7 +2,7 @@
 
 use crate::types::cell::conversions::{dec_to_string_as_base26, string_to_dec_as_base26};
 use derive_more::{Deref, Display};
-use error_stack::{FutureExt, Report, bail};
+use error_stack::{Report, bail};
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use std::ops::{Add, Sub};

@@ -1,10 +1,11 @@
-use crate::types::Letters;
+use crate::types::{Letters, SpreadSheetDateTime};
 use derive_more::Deref;
 use derive_more::with_trait::From;
 use error_stack::{Context, Report, ResultExt};
-use google_sheets4::chrono::{DateTime, Utc};
+use google_sheets4::chrono::{DateTime, NaiveDate, Utc};
 use std::fmt;
 use std::ops::Deref;
+use std::str::FromStr;
 
 #[derive(Debug)]
 pub struct CellParsingError;
@@ -72,5 +73,27 @@ impl SheetRawCellSerde for DateTime<Utc> {
         cell.parse::<DateTime<Utc>>()
             .map_err(Report::new)
             .change_context(CellParsingError)
+    }
+}
+
+impl SheetRawCellSerde for NaiveDate {
+    fn deserialize(cell: SheetRawCell) -> CellSerdeResult<Self>
+    where
+        Self: Sized,
+    {
+        NaiveDate::from_str(&cell).change_context(CellParsingError)
+    }
+}
+
+impl SheetRawCellSerde for SpreadSheetDateTime {
+    fn deserialize(cell: SheetRawCell) -> CellSerdeResult<Self>
+    where
+        Self: Sized,
+    {
+        let val = SheetRawCellSerde::deserialize(cell)?;
+        let date = SpreadSheetDateTime::from_raw(val)
+            .ok_or(CellParsingError)
+            .attach_printable_lazy(|| format!("Date number {} is out of range", val))?;
+        Ok(date)
     }
 }
