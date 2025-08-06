@@ -1,4 +1,4 @@
-use crate::mapper::sheet_row::ParseErrorWithPosition;
+use crate::mapper::sheet_row::{ParseErrorWithPosition, SheetRow};
 use crate::spread_sheet_driver::SharedSpreadSheetDriver;
 use crate::types::{A1CellId, A1Range, Entity, EntityEssentials, SheetA1CellId, SheetA1Range};
 use error_stack::{ResultExt, bail};
@@ -171,7 +171,7 @@ impl PositionalParsing for MatchedValueRange {
             .into_iter()
             .enumerate()
             .map(|(i, value)| {
-                let result: Result<Entity<E>> = E::deserialize(value)
+                let result: Result<Entity<E>> = E::deserialize(SheetRow(value))
                     .map(|data| Entity {
                         position: SheetA1CellId::from_primitives(
                             &sr.sheet,
@@ -231,7 +231,7 @@ mod orm_tests {
     use super::*;
 
     use crate::mapper::sheet_row;
-    use crate::mapper::sheet_row::{SheetRow, SheetRowExt, SheetRowSerde};
+    use crate::mapper::sheet_row::{SheetRow, SheetRowSerde};
     use google_sheets4::api::{DataFilter, ValueRange};
     use serde_json::Value;
     use std::fmt::Debug;
@@ -252,7 +252,7 @@ mod orm_tests {
                 name: row.parse_cell(1, "name")?,
             })
         }
-        fn serialize(&self) -> sheet_row::Result<SheetRow> {
+        fn serialize(&self) -> sheet_row::Result<Vec<Value>> {
             Ok(vec![
                 Value::String(self.name.clone()),
                 Value::String(self.id.to_string()),

@@ -41,26 +41,20 @@ pub enum ParseError {
     },
 }
 
-pub type SheetRow = Vec<Value>;
+#[derive(Debug, derive_more::Deref)]
+pub struct SheetRow(pub Vec<Value>);
 
 pub trait SheetRowSerde {
     fn deserialize(row: SheetRow) -> Result<Self>
     where
         Self: Sized;
 
-    fn serialize(&self) -> Result<SheetRow>;
+    fn serialize(&self) -> Result<Vec<Value>>;
 }
 
-pub trait SheetRowExt {
+impl SheetRow {
     /// cell_id - 0-based array index
-    fn parse_cell<T: SheetRawCellSerde>(
-        &self,
-        cell_id: usize,
-        column_name: &'static str,
-    ) -> Result<T>;
-}
-impl SheetRowExt for SheetRow {
-    fn parse_cell<T: SheetRawCellSerde>(
+    pub fn parse_cell<T: SheetRawCellSerde>(
         &self,
         cell_id: usize,
         column_name: &'static str,

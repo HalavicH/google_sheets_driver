@@ -12,7 +12,7 @@ use serde_json::Value;
 use std::any::type_name;
 use std::fmt::{Debug, Formatter};
 
-use crate::mapper::sheet_row::SheetRowSerde;
+use crate::mapper::sheet_row::{SheetRow, SheetRowSerde};
 use crate::types::{InputMode, MajorDimension, ValueRenderOption};
 pub use google_sheets4::api::MatchedValueRange;
 use google_sheets4::oauth2::authenticator::Authenticator;
@@ -197,7 +197,7 @@ impl SpreadSheetDriver {
             .into_vec()
             .into_iter()
             .filter_map(|row| {
-                let result = T::deserialize(row);
+                let result = T::deserialize(SheetRow(row));
                 match result {
                     Ok(v) => Some(v),
                     Err(err) => {
@@ -223,7 +223,7 @@ impl SpreadSheetDriver {
             .into_iter()
             .map(|row| {
                 let row_dbg = format!("{row:?}");
-                T::deserialize(row).change_context(SpreadSheetDriverError::ParseError(row_dbg))
+                T::deserialize(SheetRow(row)).change_context(SpreadSheetDriverError::ParseError(row_dbg))
             })
             .collect();
         result
