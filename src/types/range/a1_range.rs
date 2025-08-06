@@ -132,11 +132,11 @@ impl A1Range {
     pub fn from_str(from: &str, to: &str) -> Result<Self> {
         let start = A1CellId::from_raw(from)
             .change_context(A1RangeError::CellParsingError)
-            .attach_printable_lazy(|| format!("Input cell (from): {}", from))?;
+            .attach_printable_lazy(|| format!("Input cell (from): {from}"))?;
 
         let end = A1CellId::from_raw(to)
             .change_context(A1RangeError::CellParsingError)
-            .attach_printable_lazy(|| format!("Input cell (to): {}", to))?;
+            .attach_printable_lazy(|| format!("Input cell (to): {to}"))?;
 
         Ok(Self::new(start, end))
     }
@@ -160,11 +160,11 @@ impl A1Range {
 
         let from = A1CellId::from_raw(parts[0])
             .change_context(A1RangeError::CellParsingError)
-            .attach_printable_lazy(|| format!("Input range str: {}", string))?;
+            .attach_printable_lazy(|| format!("Input range str: {string}"))?;
 
         let to = A1CellId::from_raw(parts[1])
             .change_context(A1RangeError::CellParsingError)
-            .attach_printable_lazy(|| format!("Input range str: {}", string))?;
+            .attach_printable_lazy(|| format!("Input range str: {string}"))?;
 
         Ok(Self::new(from, to))
     }

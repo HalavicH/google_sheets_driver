@@ -1,4 +1,4 @@
-use crate::mapper::sheet_cell::SheetRawCellSerde;
+use crate::{mapper::sheet_cell::SheetRawCellSerde, types::SheetA1CellId};
 use error_stack::{Report, ResultExt};
 use serde_json::Value;
 use std::any::type_name;
@@ -6,8 +6,16 @@ use thiserror::Error;
 use tracing::debug;
 
 pub type Result<T> = error_stack::Result<T, ParseError>;
+pub type ResultWithPosition<T> = error_stack::Result<T, ParseErrorWithPosition>;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Clone, Error)]
+#[error("Parse error at {position}: {kind}")]
+pub struct ParseErrorWithPosition {
+    pub kind: ParseError,
+    pub position: SheetA1CellId,
+}
+
+#[derive(Debug, Clone, Error)]
 pub enum ParseError {
     #[error("Field {0} is not found in row")]
     FieldIsMissing(&'static str),
@@ -15,8 +23,12 @@ pub enum ParseError {
     JsonValueToStringError(Value),
     #[error("Can't deserialize JSON string into type")]
     JsonStringDeserializationError,
-    #[error("Can't deserialize Cell '{column_name}' into type '{type_name}' from string '{input}'")]
+    #[error(
+        "Can't deserialize Cell '{column_name}' (at `start.column` + offset {column_offset}) into type '{type_name}' from string '{input}'"
+    )]
     CellDeserializationError {
+        /// column_offset - 0-based index of the column in the row from start cell
+        column_offset: usize,
         column_name: &'static str,
         type_name: &'static str,
         input: String,
@@ -64,6 +76,7 @@ impl SheetRowExt for SheetRow {
 
             SheetRawCellSerde::deserialize(string.clone().into()).change_context_lazy(|| {
                 ParseError::CellDeserializationError {
+                    column_offset: cell_id,
                     column_name,
                     type_name,
                     input: string,

@@ -128,7 +128,7 @@ impl SpreadSheetDriver {
     pub async fn write_range(&self, range_str: &str, data: Vec<Vec<serde_json::Value>>) {
         self.try_write_range(range_str, data)
             .await
-            .unwrap_or_else(|e| panic!("Expected to write to spreadsheet: {:#?}", e))
+            .unwrap_or_else(|e| panic!("Expected to write to spreadsheet: {e:#?}"))
     }
 
     pub async fn try_write_range(&self, range_str: &str, data: Vec<Vec<Value>>) -> SsdResult<()> {
@@ -148,7 +148,7 @@ impl SpreadSheetDriver {
             .doit()
             .await
             .map_err(|e| {
-                println!("error: {:#?}", e);
+                println!("error: {e:#?}");
                 SpreadSheetDriverError::ApiError(e.to_string())
             })?;
 
@@ -222,7 +222,7 @@ impl SpreadSheetDriver {
             .into_vec()
             .into_iter()
             .map(|row| {
-                let row_dbg = format!("{:?}", row);
+                let row_dbg = format!("{row:?}");
                 T::deserialize(row).change_context(SpreadSheetDriverError::ParseError(row_dbg))
             })
             .collect();

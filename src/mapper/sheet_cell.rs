@@ -93,7 +93,7 @@ impl SheetRawCellSerde for SpreadSheetDateTime {
         let val = SheetRawCellSerde::deserialize(cell)?;
         let date = SpreadSheetDateTime::from_raw(val)
             .ok_or(CellParsingError)
-            .attach_printable_lazy(|| format!("Date number {} is out of range", val))?;
+            .attach_printable_lazy(|| format!("Date number {val} is out of range"))?;
         Ok(date)
     }
 }

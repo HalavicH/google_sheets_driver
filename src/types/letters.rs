@@ -24,8 +24,7 @@ impl Letters {
         assert!(!value.is_empty(), "Expected non-empty letters");
         assert!(
             value.chars().all(char::is_alphabetic),
-            "Invalid cell column letters: {:?}",
-            value
+            "Invalid cell column letters: {value:?}"
         );
         Self(value)
     }
@@ -45,10 +44,7 @@ impl TryFrom<String> for Letters {
         }
 
         if !value.chars().all(char::is_alphabetic) {
-            let text = format!(
-                "String value: {} must contain only alphabetic characters",
-                value
-            );
+            let text = format!("String value: {value} must contain only alphabetic characters");
             return Err(Report::new(LettersError::NonAlphanumeric(value)).attach_printable(text));
         }
         Ok(Self::new(value.to_uppercase()))

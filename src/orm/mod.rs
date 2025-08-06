@@ -1,3 +1,4 @@
+use crate::mapper::sheet_row::ParseErrorWithPosition;
 use crate::spread_sheet_driver::SharedSpreadSheetDriver;
 use crate::types::{A1CellId, A1Range, Entity, EntityEssentials, SheetA1CellId, SheetA1Range};
 use error_stack::{ResultExt, bail};
@@ -117,7 +118,7 @@ impl Repository {
         let Some(updates) = &avr.updates else {
             bail!(RepositoryError::UnexpectedResponse {
                 what: "AppendValuesResponse doesn't have 'updates'",
-                input: format!("Input range: {:?}, data: {:?}", range, entity_data),
+                input: format!("Input range: {range:?}, data: {entity_data:?}"),
                 response: Box::new(avr)
             });
         };
@@ -125,7 +126,7 @@ impl Repository {
         let Some(updated_range) = &updates.updated_range else {
             bail!(RepositoryError::UnexpectedResponse {
                 what: "UpdateValuesResponse doesn't have 'updated_range'",
-                input: format!("Input range: {:?}, data: {:?}", range, updates),
+                input: format!("Input range: {range:?}, data: {updates:?}"),
                 response: Box::new(avr)
             });
         };
@@ -177,9 +178,17 @@ impl PositionalParsing for MatchedValueRange {
                             &start.col,
                             start.row.get() + i as u32,
                         ),
-                        data: data,
+                        data,
+                    })
+                    .map_err(|e| {
+                        let column = start.col.clone(); // TODO: Extract column from parse error
+                        let cell = A1CellId::new(column, start.row.saturating_add(i as u32));
+                        let position = SheetA1CellId::new(&sr.sheet, cell);
+                        let kind = e.current_context().clone();
+                        e.change_context(ParseErrorWithPosition { kind, position })
                     })
                     .change_context(RepositoryError::ParsingError);
+
                 result
             })
             .collect();
@@ -337,9 +346,9 @@ pub fn convert_into_range(start: &SheetA1CellId, rows: u32, width: u32) -> Sheet
         NonZero::new(rows).expect("Expected to have rows to be at least 1"),
     );
     let end_cell = start.cell.clone() + offset;
-    let range = SheetA1Range::new(
+
+    SheetA1Range::new(
         start.sheet_name.to_string(),
         A1Range::new(start.cell.clone(), end_cell),
-    );
-    range
+    )
 }

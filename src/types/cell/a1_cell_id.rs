@@ -2,6 +2,7 @@ use crate::types::cell::conversions::string_to_dec_as_base26;
 use crate::types::cell::num_cell_id::NumCellId;
 use crate::types::letters::Letters;
 use crate::types::{A1Range, SheetA1Range};
+use derive_more::Display;
 use error_stack::{ResultExt, bail};
 use huh::IntoReport;
 use std::cmp::Ordering;
@@ -11,7 +12,8 @@ use std::ops::{Add, Deref};
 
 pub type Result<T> = error_stack::Result<T, A1CellIdError>;
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Display)]
+#[display("\"{sheet_name}\"!{cell}")]
 pub struct SheetA1CellId {
     pub sheet_name: String,
     pub cell: A1CellId,
@@ -74,7 +76,8 @@ pub enum A1CellIdError {
 }
 
 /// Defines a cell id in A1 notation.
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Display)]
+#[display("{col}{row}")]
 pub struct A1CellId {
     pub col: Letters,
     pub row: NonZeroU32,
