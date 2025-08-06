@@ -1,6 +1,6 @@
 use crate::types::letters::Letters;
 use crate::types::{A1CellId, SheetA1CellId};
-use error_stack::{ResultExt, bail};
+use error_stack::{Report, ResultExt, bail};
 use std::fmt::Display;
 use std::num::NonZero;
 use thiserror::Error;
@@ -15,7 +15,8 @@ pub enum A1RangeError {
 
 pub type Result<T> = error_stack::Result<T, A1RangeError>;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, derive_more::Display)]
+#[display("{}:{}", start, end)]
 pub struct A1Range {
     pub start: A1CellId,
     pub end: A1CellId,
@@ -140,10 +141,6 @@ impl A1Range {
 
         Ok(Self::new(start, end))
     }
-
-    pub fn to_string(&self) -> String {
-        format!("{}:{}", self.start.to_string(), self.end.to_string())
-    }
 }
 
 impl A1Range {
@@ -211,7 +208,8 @@ mod range_tests {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, derive_more::Display)]
+#[display("{}!{}", sheet, range)]
 pub struct SheetA1Range {
     pub sheet: String,
     pub range: A1Range,
@@ -253,18 +251,11 @@ impl SheetA1Range {
             range,
         }
     }
-
-    pub fn from_str(page: &str, range: &str) -> Result<Self> {
-        Ok(Self::new(page.to_string(), A1Range::from_raw(range)?))
-    }
 }
+impl TryFrom<&str> for SheetA1Range {
+    type Error = Report<A1RangeError>;
 
-impl Display for SheetA1Range {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            format!("{}!{}", self.sheet, self.range.to_string())
-        )
+    fn try_from(value: &str) -> std::result::Result<SheetA1Range, Self::Error> {
+        Self::from_raw(value)
     }
 }

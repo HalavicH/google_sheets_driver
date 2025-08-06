@@ -1,4 +1,4 @@
-use crate::mapper::sheet_row::{ParseErrorWithPosition, SheetRow};
+use crate::mapper::sheet_row::PositionedSheetRow;
 use crate::spread_sheet_driver::SharedSpreadSheetDriver;
 use crate::types::{A1CellId, A1Range, Entity, EntityEssentials, SheetA1CellId, SheetA1Range};
 use error_stack::{ResultExt, bail};
@@ -171,23 +171,24 @@ impl PositionalParsing for MatchedValueRange {
             .into_iter()
             .enumerate()
             .map(|(i, value)| {
-                let result: Result<Entity<E>> = E::deserialize(SheetRow(value))
-                    .map(|data| Entity {
-                        position: SheetA1CellId::from_primitives(
-                            &sr.sheet,
-                            &start.col,
-                            start.row.get() + i as u32,
-                        ),
-                        data,
-                    })
-                    .map_err(|e| {
-                        let column = start.col.clone(); // TODO: Extract column from parse error
-                        let cell = A1CellId::new(column, start.row.saturating_add(i as u32));
-                        let position = SheetA1CellId::new(&sr.sheet, cell);
-                        let kind = e.current_context().clone();
-                        e.change_context(ParseErrorWithPosition { kind, position })
-                    })
-                    .change_context(RepositoryError::ParsingError);
+                let start_cell = SheetA1CellId::from_primitives(
+                    &sr.sheet,
+                    start.col.clone(),
+                    start.row.get() + i as u32,
+                );
+                let result: Result<Entity<E>> = E::deserialize(PositionedSheetRow {
+                    data: value,
+                    start_cell,
+                })
+                .map(|data| Entity {
+                    position: SheetA1CellId::from_primitives(
+                        &sr.sheet,
+                        &start.col,
+                        start.row.get() + i as u32,
+                    ),
+                    data,
+                })
+                .change_context(RepositoryError::ParsingError);
 
                 result
             })
@@ -225,13 +226,29 @@ impl PositionalParsing for MatchedValueRange {
     }
 }
 
+// TODO: Fix possible bug with `rows: 1` producing range of 2 rows because of 1-based indexing
+pub fn convert_into_range(start: &SheetA1CellId, rows: u32, width: u32) -> SheetA1Range {
+    // -2 for 1-based offset twice (first time here, second time when calculating end_cell
+    let compensation = 2;
+    let offset = A1CellId::new(
+        start.cell.col.clone() + width - compensation,
+        NonZero::new(rows).expect("Expected to have rows to be at least 1"),
+    );
+    let end_cell = start.cell.clone() + offset;
+
+    SheetA1Range::new(
+        start.sheet_name.to_string(),
+        A1Range::new(start.cell.clone(), end_cell),
+    )
+}
+
 #[allow(non_snake_case)]
 #[cfg(test)]
 mod orm_tests {
     use super::*;
 
     use crate::mapper::sheet_row;
-    use crate::mapper::sheet_row::{SheetRow, SheetRowSerde};
+    use crate::mapper::sheet_row::{PositionedSheetRow, SheetRowSerde};
     use google_sheets4::api::{DataFilter, ValueRange};
     use serde_json::Value;
     use std::fmt::Debug;
@@ -243,7 +260,7 @@ mod orm_tests {
     }
 
     impl SheetRowSerde for User {
-        fn deserialize(row: SheetRow) -> sheet_row::Result<Self>
+        fn deserialize(row: PositionedSheetRow) -> sheet_row::Result<Self>
         where
             Self: Sized,
         {
@@ -301,7 +318,7 @@ mod orm_tests {
             let input = get_mocked_query_response();
 
             let result: Result<Vec<Entity<User>>> = input.parse_positionally();
-            println!("{:?}", result);
+            println!("{result:?}");
             assert!(result.is_ok());
 
             let actual = result.expect("Test: Expected to parse MatchedValueRange");
@@ -331,24 +348,8 @@ mod orm_tests {
                 },
             ];
 
-            println!("{:#?}", expected);
+            println!("{expected:#?}");
             assert_eq!(actual, expected)
         }
     }
-}
-
-// TODO: Fix possible bug with `rows: 1` producing range of 2 rows because of 1-based indexing
-pub fn convert_into_range(start: &SheetA1CellId, rows: u32, width: u32) -> SheetA1Range {
-    // -2 for 1-based offset twice (first time here, second time when calculating end_cell
-    let compensation = 2;
-    let offset = A1CellId::new(
-        start.cell.col.clone() + width - compensation,
-        NonZero::new(rows).expect("Expected to have rows to be at least 1"),
-    );
-    let end_cell = start.cell.clone() + offset;
-
-    SheetA1Range::new(
-        start.sheet_name.to_string(),
-        A1Range::new(start.cell.clone(), end_cell),
-    )
 }

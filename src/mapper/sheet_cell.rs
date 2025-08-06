@@ -57,7 +57,6 @@ impl_sheet_raw_cell_serde!(
 );
 
 /// Own types
-
 impl SheetRawCellSerde for Letters {
     fn deserialize(cell: SheetRawCell) -> CellSerdeResult<Self>
     where

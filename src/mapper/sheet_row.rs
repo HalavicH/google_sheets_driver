@@ -2,18 +2,11 @@ use crate::{mapper::sheet_cell::SheetRawCellSerde, types::SheetA1CellId};
 use error_stack::{Report, ResultExt};
 use serde_json::Value;
 use std::any::type_name;
+use std::ops::Add;
 use thiserror::Error;
 use tracing::debug;
 
 pub type Result<T> = error_stack::Result<T, ParseError>;
-pub type ResultWithPosition<T> = error_stack::Result<T, ParseErrorWithPosition>;
-
-#[derive(Debug, Clone, Error)]
-#[error("Parse error at {position}: {kind}")]
-pub struct ParseErrorWithPosition {
-    pub kind: ParseError,
-    pub position: SheetA1CellId,
-}
 
 #[derive(Debug, Clone, Error)]
 pub enum ParseError {
@@ -24,11 +17,10 @@ pub enum ParseError {
     #[error("Can't deserialize JSON string into type")]
     JsonStringDeserializationError,
     #[error(
-        "Can't deserialize Cell '{column_name}' (at `start.column` + offset {column_offset}) into type '{type_name}' from string '{input}'"
+        "Can't deserialize column '{column_name}' at {location} into type '{type_name}' from string '{input}'"
     )]
     CellDeserializationError {
-        /// column_offset - 0-based index of the column in the row from start cell
-        column_offset: usize,
+        location: SheetA1CellId,
         column_name: &'static str,
         type_name: &'static str,
         input: String,
@@ -41,28 +33,31 @@ pub enum ParseError {
     },
 }
 
-#[derive(Debug, derive_more::Deref)]
-pub struct SheetRow(pub Vec<Value>);
+#[derive(Debug)]
+pub struct PositionedSheetRow {
+    pub data: Vec<Value>,
+    pub start_cell: SheetA1CellId,
+}
 
 pub trait SheetRowSerde {
-    fn deserialize(row: SheetRow) -> Result<Self>
+    fn deserialize(row: PositionedSheetRow) -> Result<Self>
     where
         Self: Sized;
 
     fn serialize(&self) -> Result<Vec<Value>>;
 }
 
-impl SheetRow {
+impl PositionedSheetRow {
     /// cell_id - 0-based array index
     pub fn parse_cell<T: SheetRawCellSerde>(
         &self,
         cell_id: usize,
         column_name: &'static str,
     ) -> Result<T> {
-        let cell = self.get(cell_id);
+        let cell = self.data.get(cell_id);
 
         let type_name = type_name::<T>();
-        let result = try_unwrap_value(cell, self, column_name);
+        let result = try_unwrap_value(cell, &self.data, column_name);
 
         result.and_then(|v| {
             debug!("Parsing {:?} into {}", v, type_name);
@@ -70,7 +65,10 @@ impl SheetRow {
 
             SheetRawCellSerde::deserialize(string.clone().into()).change_context_lazy(|| {
                 ParseError::CellDeserializationError {
-                    column_offset: cell_id,
+                    location: self
+                        .start_cell
+                        .clone()
+                        .with_col(self.start_cell.cell.col.clone().add(cell_id as u32)),
                     column_name,
                     type_name,
                     input: string,

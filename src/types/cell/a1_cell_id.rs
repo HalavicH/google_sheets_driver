@@ -8,7 +8,7 @@ use huh::IntoReport;
 use std::cmp::Ordering;
 use std::fmt::Display;
 use std::num::{NonZero, NonZeroU32};
-use std::ops::{Add, Deref};
+use std::ops::Add;
 
 pub type Result<T> = error_stack::Result<T, A1CellIdError>;
 
@@ -34,9 +34,7 @@ impl SheetA1CellId {
         let cell = A1CellId::from_raw(parts[1])?;
         Ok(SheetA1CellId { sheet_name, cell })
     }
-}
 
-impl SheetA1CellId {
     pub fn from_primitives<N, C>(name: N, col: C, row: u32) -> Self
     where
         N: Display,
@@ -66,6 +64,19 @@ impl SheetA1CellId {
             self.sheet_name,
             A1Range::new(self.cell, A1CellId::from_primitives(end_col, end_row)),
         )
+    }
+
+    pub fn with_col(&self, col: Letters) -> Self {
+        SheetA1CellId {
+            sheet_name: self.sheet_name.clone(),
+            cell: A1CellId::new(col, self.cell.row),
+        }
+    }
+    pub fn with_row(&self, row: NonZeroU32) -> Self {
+        SheetA1CellId {
+            sheet_name: self.sheet_name.clone(),
+            cell: A1CellId::new(self.cell.col.clone(), row),
+        }
     }
 }
 
@@ -177,10 +188,6 @@ impl A1CellId {
         }
     }
 
-    pub fn to_string(&self) -> String {
-        format!("{}{}", self.col.deref(), self.row)
-    }
-
     pub(crate) fn delta(&self, columns: i32, rows: i32) -> A1CellId {
         let number = self.row.get() as i32 + rows;
         let letter = if columns < 0 {
@@ -226,13 +233,8 @@ impl TryFrom<&str> for A1CellId {
 
 impl PartialOrd for A1CellId {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let Some(x_ord) = self.col.partial_cmp(&other.col) else {
-            return None;
-        };
-        let Some(y_ord) = self.row.partial_cmp(&other.row) else {
-            return None;
-        };
-
+        let x_ord = self.col.partial_cmp(&other.col)?;
+        let y_ord = self.row.partial_cmp(&other.row)?;
         Some(y_ord.then(x_ord))
     }
 }
@@ -245,6 +247,7 @@ mod a1_cell_id_tests {
     #[cfg(test)]
     mod cell_creation_tests {
         use super::*;
+        use std::ops::Deref;
 
         #[test]
         fn cell_id__new__ok() {
@@ -308,6 +311,7 @@ mod a1_cell_id_tests {
     #[cfg(test)]
     mod add_tests {
         use super::*;
+        use std::ops::Deref;
 
         #[test]
         fn given_a1_b2__when_add__then_ok_c3() {

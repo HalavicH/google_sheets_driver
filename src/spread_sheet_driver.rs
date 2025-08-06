@@ -12,8 +12,8 @@ use serde_json::Value;
 use std::any::type_name;
 use std::fmt::{Debug, Formatter};
 
-use crate::mapper::sheet_row::{SheetRow, SheetRowSerde};
-use crate::types::{InputMode, MajorDimension, ValueRenderOption};
+use crate::mapper::sheet_row::{PositionedSheetRow, SheetRowSerde};
+use crate::types::{InputMode, MajorDimension, SheetA1CellId, SheetA1Range, ValueRenderOption};
 pub use google_sheets4::api::MatchedValueRange;
 use google_sheets4::oauth2::authenticator::Authenticator;
 use huh::{AMShared, ErrorStackExt};
@@ -181,11 +181,11 @@ impl SpreadSheetDriver {
     }
 
     /// Typed API ///
-    pub async fn read_rows_deserialized_ignore_errors<T>(&self, range_str: &str) -> Vec<T>
+    pub async fn read_rows_deserialized_ignore_errors<T>(&self, sheet_range: SheetA1Range) -> Vec<T>
     where
         T: SheetRowSerde,
     {
-        let result = self.try_get_range(range_str).await;
+        let result = self.try_get_range(&sheet_range).await;
         let range = match result {
             Ok(range) => range,
             Err(_) => {
@@ -193,11 +193,19 @@ impl SpreadSheetDriver {
             }
         };
 
+        let start = &sheet_range.range.start;
+        let sheet = &sheet_range.sheet;
         range
             .into_vec()
             .into_iter()
-            .filter_map(|row| {
-                let result = T::deserialize(SheetRow(row));
+            .enumerate()
+            .filter_map(|(i, data)| {
+                let start_cell = SheetA1CellId::from_primitives(
+                    sheet.clone(),
+                    start.col.clone(),
+                    start.column().get() + i as u32,
+                );
+                let result = T::deserialize(PositionedSheetRow { data, start_cell });
                 match result {
                     Ok(v) => Some(v),
                     Err(err) => {
@@ -213,17 +221,28 @@ impl SpreadSheetDriver {
             .collect()
     }
 
-    pub async fn read_rows_deserialized<T>(&self, range_str: &str) -> SsdResult<Vec<T>>
+    pub async fn read_rows_deserialized<T>(&self, sheet_a1range: SheetA1Range) -> SsdResult<Vec<T>>
     where
         T: SheetRowSerde,
     {
-        let range = self.get_range(range_str).await;
+        let range = self.get_range(&sheet_a1range).await;
+
+        let start = &sheet_a1range.range.start;
+        let sheet = &sheet_a1range.sheet;
+
         let result: SsdResult<Vec<T>> = range
             .into_vec()
             .into_iter()
-            .map(|row| {
-                let row_dbg = format!("{row:?}");
-                T::deserialize(SheetRow(row)).change_context(SpreadSheetDriverError::ParseError(row_dbg))
+            .enumerate()
+            .map(|(i, data)| {
+                let row_dbg = format!("{data:?}");
+                let start_cell = SheetA1CellId::from_primitives(
+                    sheet.clone(),
+                    start.col.clone(),
+                    start.column().get() + i as u32,
+                );
+                T::deserialize(PositionedSheetRow { data, start_cell })
+                    .change_context(SpreadSheetDriverError::ParseError(row_dbg))
             })
             .collect();
         result
